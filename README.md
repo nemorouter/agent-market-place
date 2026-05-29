@@ -32,6 +32,21 @@ export NEMO_DOCS_KB_PATH=$PWD/knowledge-base.json   # restart nemo-backend
 
 Run it manually whenever the docs change. If `NEMO_DOCS_KB_PATH` is unset/invalid, the tool falls back to the curated in-code KB (always works offline). The pgvector upgrade (Phase 2) keeps the same tool contract.
 
+## Configurable agents (yaml / json) — "docs link + website link → your own agent"
+
+An agent is **declared in one config file** — `examples/agent.config.yaml` (readable) or `.json` (machine), validated by `examples/agent.config.schema.json`. It says who the agent is (id, name, model, `system_prompt`, `tools`, `visibility`) **and what it knows** (`knowledge.sources`: local `docs` dirs + `website` URLs). Build the agent's knowledge base straight from the config:
+
+```bash
+# scrapes every knowledge.source in the config → <agent-id>-knowledge-base.json
+python3 scripts/build-knowledge-base.py --config agent.config.yaml
+```
+
+**Storage = per-customer (the `knowledge.store` field):**
+- `store: json` *(available now)* — emits a KB JSON loaded via `NEMO_DOCS_KB_PATH` (single corpus).
+- `store: vector` *(Phase 2)* — ingests into the **per-org pgvector table `nemo.docs_chunks`, RLS-scoped to your `organization_id`** — a **user-specific vector DB**. The `nemo_docs_search` tool then retrieves only *your* corpus, never another tenant's. Same tool contract; the storage swaps underneath.
+
+So yes: a customer points the config at their docs + website, the MCP scrapes them, and the agent answers from their own tenant-scoped knowledge — under their own key, credits, and guardrails. v1 ships the config + scraper + JSON store; per-org agent registration + the vector store land in Phase 2 (`amp-mcp-gateway`). Today agents are registered in `nemo-router-mono-repo/03-nemo-backend/nemo_backend/mcp_gateway/agents.py`; the config file is the forward-compatible authoring format.
+
 ## What this is NOT (yet)
 
 - Not a separate API service. No new `agent-api.*` hostname. All routes ship under `api.nemorouter.ai`.

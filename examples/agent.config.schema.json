@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nemorouter.ai/schemas/agent.config.schema.json",
+  "title": "Nemo Agent Config",
+  "description": "Customer-authored definition of a marketplace agent: identity, model, tools, and knowledge sources the MCP gateway scrapes into the customer's tenant-scoped vector corpus.",
+  "type": "object",
+  "required": ["id", "name", "model", "system_prompt", "tools"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+      "description": "Slug, unique within the org. Used in POST /v1/agents/{id}/respond."
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "maxLength": 280 },
+    "model": {
+      "type": "string",
+      "description": "A model Nemo Router serves (see GET /v1/models)."
+    },
+    "system_prompt": { "type": "string", "minLength": 1, "maxLength": 8000 },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "description": "Tool ids from GET /v1/mcp/tools the agent may call."
+    },
+    "max_steps": { "type": "integer", "minimum": 1, "maximum": 10, "default": 4 },
+    "visibility": { "enum": ["org", "public"], "default": "org" },
+    "refresh": { "enum": ["manual", "daily", "weekly"], "default": "manual" },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "store": {
+          "enum": ["vector", "json"],
+          "default": "vector",
+          "description": "vector = per-org pgvector (RLS-scoped) [Phase 2]; json = NEMO_DOCS_KB_PATH file [now]."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["type", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "const": "docs" },
+                  "path": { "type": "string", "description": "Local docs dir (Markdown/MDX)." },
+                  "base_url": { "type": "string", "description": "Base URL for doc page links." }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["type", "url"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": { "const": "website" },
+                  "url": { "type": "string", "format": "uri" },
+                  "max_pages": { "type": "integer", "minimum": 1, "maximum": 200, "default": 40 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# agent.config.yaml — a customer's agent definition for the Nemo agent marketplace
+#
+# This is the single file a customer authors to stand up their own agent. It
+# declares WHO the agent is (prompt, model, tools) and WHAT it knows (knowledge
+# sources). The MCP gateway scrapes the knowledge sources and stores them into
+# the customer's OWN tenant-scoped vector corpus (RLS by organization_id), so the
+# agent answers only from that customer's content — under that customer's key,
+# credits, and guardrails.
+#
+# Validate with: examples/agent.config.schema.json
+# Build the knowledge base from this file:
+#   python3 scripts/build-knowledge-base.py --config agent.config.yaml --out kb.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Unique id within your org (slug). Used in POST /v1/agents/{id}/respond.
+id: acme-support
+
+name: Acme Support Agent
+description: Answers questions about Acme using Acme's own docs + website.
+
+# Any model Nemo Router serves (see GET /v1/models). Cheaper = faster + lower cost.
+model: gemini-2.5-flash-lite
+
+# The agent's instructions. Keep it grounded: tell it to answer ONLY from the
+# retrieved knowledge and to defer when unsure.
+system_prompt: |
+  You are Acme's support assistant. Answer questions about Acme's product using
+  ONLY the information returned by the nemo_docs_search tool. Always search first.
+  If the docs don't cover it, say so and point the user to https://acme.com/support.
+  Keep answers to 2-4 sentences, plain text, friendly and direct.
+
+# Tool ids from the Nemo catalog (GET /v1/mcp/tools). v1 ships nemo_docs_search;
+# credentialed tools (slack-send, github-search, web-search) arrive in Phase 2.
+tools:
+  - nemo_docs_search
+
+# Max agent loop iterations per turn (tool→LLM→tool→…→answer). Hard cap.
+max_steps: 4
+
+# org  = only this org's keys can call it (default)
+# public = any Nemo key can call it (like the platform nemo-support agent)
+visibility: org
+
+# What the agent knows. The MCP scrapes these sources into the agent's corpus.
+knowledge:
+  # Where the scraped corpus is stored:
+  #   vector = per-org pgvector table (nemo.docs_chunks), RLS-scoped to your org   [Phase 2]
+  #   json   = a knowledge-base JSON file loaded via NEMO_DOCS_KB_PATH             [available now]
+  store: vector
+
+  sources:
+    # A local docs directory (Markdown / MDX).
+    - type: docs
+      path: ./docs
+      base_url: https://acme.com/docs   # used to build doc page links
+
+    # A website — one-shot, same-origin, depth/page-bounded crawl.
+    - type: website
+      url: https://acme.com/docs
+      max_pages: 60
+
+# Refresh cadence for re-scraping the sources (informational; ingestion job reads it).
+#   manual  = re-run the scraper by hand (v1)
+#   daily | weekly = scheduled re-scrape (Phase 2)
+refresh: manual

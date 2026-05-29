@@ -252,29 +252,84 @@ def scrape_site(start_url: str, max_pages: int) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Config-driven mode — an agent.config.yaml/json declares its knowledge sources
+# ---------------------------------------------------------------------------
+
+
+def load_agent_config(path: Path) -> dict:
+    """Load an agent config. JSON is stdlib; YAML needs PyYAML (optional)."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix in (".yaml", ".yml"):
+        try:
+            import yaml  # type: ignore
+        except ImportError:
+            raise SystemExit(
+                f"{path} is YAML but PyYAML isn't installed. Either `pip install pyyaml` "
+                "or provide the config as .json (same schema)."
+            ) from None
+        return yaml.safe_load(text)
+    return json.loads(text)
+
+
+def scrape_from_config(cfg: dict, config_dir: Path) -> list[dict]:
+    """Scrape every knowledge.source declared in an agent config."""
+    chunks: list[dict] = []
+    knowledge = cfg.get("knowledge") or {}
+    sources = knowledge.get("sources") or []
+    if not sources:
+        print("[config] no knowledge.sources declared — empty KB", file=sys.stderr)
+    for src in sources:
+        kind = src.get("type")
+        if kind == "docs":
+            docs_dir = (config_dir / src["path"]).resolve()
+            if not docs_dir.is_dir():
+                print(f"[config] skip docs source (not a dir): {docs_dir}", file=sys.stderr)
+                continue
+            chunks += scrape_docs(docs_dir, src.get("base_url", "https://nemorouter.ai"))
+        elif kind == "website":
+            chunks += scrape_site(src["url"], int(src.get("max_pages", 40)))
+        else:
+            print(f"[config] unknown source type: {kind!r}", file=sys.stderr)
+    return chunks
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Build the nemo_docs_search knowledge base (manual, one-shot).")
+    ap = argparse.ArgumentParser(description="Build a Nemo agent knowledge base (manual, one-shot).")
+    ap.add_argument("--config", type=Path, help="Agent config (yaml/json) declaring knowledge.sources.")
     ap.add_argument("--docs", type=Path, help="Local docs dir (Markdown/MDX) to scrape.")
     ap.add_argument("--base-url", default="https://nemorouter.ai", help="Base URL for doc page links.")
     ap.add_argument("--url", help="Website URL to crawl (one-shot, same-origin).")
     ap.add_argument("--max-pages", type=int, default=40, help="Max pages to crawl from --url.")
-    ap.add_argument("--out", type=Path, required=True, help="Output knowledge-base JSON path.")
+    ap.add_argument("--out", type=Path, help="Output KB JSON path (default: <agent-id>-knowledge-base.json in config mode).")
     args = ap.parse_args()
 
-    if not args.docs and not args.url:
-        ap.error("provide at least one of --docs or --url")
-
+    cfg: dict | None = None
     chunks: list[dict] = []
-    if args.docs:
-        if not args.docs.is_dir():
-            ap.error(f"--docs is not a directory: {args.docs}")
-        chunks += scrape_docs(args.docs, args.base_url)
-    if args.url:
-        chunks += scrape_site(args.url, args.max_pages)
+
+    if args.config:
+        cfg = load_agent_config(args.config)
+        agent_id = cfg.get("id", "agent")
+        print(f"[config] agent '{agent_id}' — model={cfg.get('model')} tools={cfg.get('tools')} "
+              f"store={(cfg.get('knowledge') or {}).get('store', 'json')}", file=sys.stderr)
+        chunks += scrape_from_config(cfg, args.config.resolve().parent)
+        if args.out is None:
+            args.out = Path(f"{agent_id}-knowledge-base.json")
+    else:
+        if not args.docs and not args.url:
+            ap.error("provide --config, or at least one of --docs / --url")
+        if args.out is None:
+            ap.error("--out is required in non-config mode")
+        if args.docs:
+            if not args.docs.is_dir():
+                ap.error(f"--docs is not a directory: {args.docs}")
+            chunks += scrape_docs(args.docs, args.base_url)
+        if args.url:
+            chunks += scrape_site(args.url, args.max_pages)
 
     # de-dup by id
     by_id: dict[str, dict] = {}
@@ -284,7 +339,21 @@ def main() -> int:
 
     args.out.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[done] wrote {len(out)} chunks -> {args.out}", file=sys.stderr)
-    print(f"\nNext: point the gateway at it ->\n  export NEMO_DOCS_KB_PATH={args.out.resolve()}\n  (restart nemo-backend; nemo_docs_search loads it, else falls back to the curated KB)", file=sys.stderr)
+
+    store = (cfg.get("knowledge") or {}).get("store", "json") if cfg else "json"
+    if store == "vector":
+        print(
+            "\nNext (store=vector, Phase 2): ingest this JSON into the per-org pgvector table "
+            "nemo.docs_chunks (RLS-scoped to your organization_id), keyed by agent id. The "
+            "nemo_docs_search tool reads your tenant corpus — never another org's.",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"\nNext (store=json): point the gateway at it ->\n  export NEMO_DOCS_KB_PATH={args.out.resolve()}\n"
+            "  (restart nemo-backend; nemo_docs_search loads it, else falls back to the curated KB)",
+            file=sys.stderr,
+        )
     return 0
 
 
