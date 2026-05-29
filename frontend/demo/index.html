@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nemo Agent Widget — embed demo</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 64px 24px;
+        color: #18181b; background: #fafafa; }
+      .wrap { max-width: 640px; margin: 0 auto; }
+      h1 { font-weight: 600; }
+      code { background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+      pre { background: #18181b; color: #e4e4e7; padding: 16px; border-radius: 10px; overflow-x: auto; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Nemo Agent Widget — separately deployable embed</h1>
+      <p>
+        This page loads the widget exactly the way a customer would on their own site — one
+        <code>&lt;script&gt;</code> tag, zero framework. The widget streams from the central Nemo
+        MCP gateway (<code>/v1/agents/{id}/respond</code>); the gateway is not deployed here.
+      </p>
+      <p>Click the <strong>Ask AI</strong> launcher in the bottom-right.</p>
+      <pre>&lt;script src="agent-widget.global.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  NemoAgentWidget.mount({
+    // public site: proxy keeps the sk-nemo key server-side
+    proxyPath: '/api/public/ask',
+    // OR direct: apiBase, agentId, apiKey: 'sk-nemo-…'
+    title: 'Ask AI about Acme',
+    suggestions: ['How does pricing work?', 'Is it OpenAI-compatible?'],
+  });
+&lt;/script&gt;</pre>
+    </div>
+
+    <script src="agent-widget.global.js"></script>
+    <script>
+      // Demo wiring — point at your gateway + a test virtual key, or a proxy.
+      NemoAgentWidget.mount({
+        apiBase: 'http://localhost:8090',
+        agentId: 'nemo-support',
+        apiKey: window.localStorage.getItem('nemo_demo_key') || 'sk-nemo-REPLACE',
+        title: 'Ask AI about Nemo Router',
+        suggestions: ['How does the platform fee work?', 'Which models are live today?'],
+      });
+    </script>
+  </body>
+</html>

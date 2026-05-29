@@ -1,0 +1,26 @@
+{
+  "name": "@nemorouter/agent-widget",
+  "version": "0.1.0",
+  "description": "Zero-dependency embeddable Ask-AI chat widget for the Nemo Router agent gateway. Deployed separately (CDN/npm); talks to api.nemorouter.ai with your own sk-nemo key.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./widget.js": "./dist/agent-widget.global.js"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js && esbuild src/embed.ts --bundle --global-name=NemoAgentWidget --outfile=dist/agent-widget.global.js && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "typecheck": "tsc --noEmit",
+    "demo": "esbuild src/embed.ts --bundle --global-name=NemoAgentWidget --servedir=demo --outfile=demo/agent-widget.global.js"
+  },
+  "keywords": ["nemorouter", "llm", "agent", "mcp", "chat-widget", "embeddable"],
+  "repository": { "type": "git", "url": "https://github.com/nemorouter/agent-market-place" },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}
