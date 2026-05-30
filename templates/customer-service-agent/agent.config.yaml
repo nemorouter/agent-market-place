@@ -1,0 +1,44 @@
+# agent.config.yaml — human-readable manifest for THIS agent (example: Acme Inc).
+#
+# This file documents the agent; the runtime reads the matching values from env
+# vars (see .env.example). A Phase-2 admin UI will let you edit these and store
+# them in your own Supabase instead of env.
+
+id: acme-support
+name: Acme Support
+
+# Any model Nemo Router serves, OR a Nemo model_group alias (Nemo applies
+# routing/fallback for the alias). Cheaper = faster + lower spend.
+model: gemini-2.5-flash-lite
+
+# Embedding model Nemo serves — MUST match the vector() dimension in supabase/migration.sql.
+embedding_model: text-embedding-3-small
+
+system_prompt: |
+  You are Acme's support assistant. Answer questions about Acme's product using
+  ONLY the information in the provided context. Always ground your answer in it.
+  If the context doesn't cover the question, say so plainly and point the user to
+  https://acme.com/support. Keep answers to 2-4 sentences, friendly and direct.
+
+top_k: 6
+max_steps: 4
+
+# Optional: Nemo guardrail ids to apply per-request, on top of the key's defaults.
+guardrails: []
+
+# What the agent knows (read by /api/ingest):
+knowledge:
+  docs_path: ./docs
+  docs_base_url: https://acme.com/docs
+  website_url: https://acme.com/docs
+  website_max_pages: 60
+
+# Abuse protection (Layers 1-3; Layer 4 = the per-day BUDGET on your Nemo key).
+security:
+  allowed_origins:
+    - https://acme.com
+    - https://*.acme.com
+    - http://localhost:3000
+  rate_limit: { per_ip_per_min: 20, per_session_per_min: 10, per_ip_per_day: 500 }
+  captcha: { enabled: false, provider: turnstile, trigger: after_3_messages }
+  require_email: false

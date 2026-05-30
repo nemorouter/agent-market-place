@@ -1,0 +1,41 @@
+# agent.config.yaml — restaurant-agent (example: "Tomato & Basil" bistro).
+#
+# Same runtime as ../customer-service-agent — a new agent type is just a new
+# config + knowledge, NOT a new codebase. To run this agent:
+#   1. copy ../customer-service-agent (the full Next.js app),
+#   2. replace its agent.config.yaml + ./docs with the ones here,
+#   3. follow that template's README walk-through.
+#
+# Only the prompt + knowledge differ from the support agent.
+
+id: tomato-basil-host
+name: Tomato & Basil Assistant
+
+model: gemini-2.5-flash-lite
+embedding_model: text-embedding-3-small
+
+system_prompt: |
+  You are the host assistant for Tomato & Basil, an Italian bistro. Answer guest
+  questions about the menu, hours, location, dietary options, and reservations
+  using ONLY the provided context. For allergies, always advise confirming with
+  staff. To book a table, collect party size, date, and time, then point guests to
+  https://tomatoandbasil.example/reserve. Keep answers warm and short.
+
+top_k: 6
+max_steps: 4
+guardrails: []
+
+knowledge:
+  docs_path: ./docs
+  docs_base_url: https://tomatoandbasil.example
+  website_url: https://tomatoandbasil.example
+  website_max_pages: 30
+
+security:
+  allowed_origins:
+    - https://tomatoandbasil.example
+    - https://*.tomatoandbasil.example
+    - http://localhost:3000
+  rate_limit: { per_ip_per_min: 20, per_session_per_min: 10, per_ip_per_day: 500 }
+  captcha: { enabled: false, provider: turnstile, trigger: after_3_messages }
+  require_email: false
