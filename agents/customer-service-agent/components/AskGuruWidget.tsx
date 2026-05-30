@@ -163,7 +163,7 @@ function renderMarkdownLite(text: string): ReactNode[] {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * AskNemoWidget — "Ask AI about NemoRouter" chat. Streams answers from our
+ * AskNemoWidget — "Ask AI Guru about NemoRouter" chat. Streams answers from our
  * OWN gateway via /api/chat. Mounted once in the (landingPages) layout.
  *
  * Layout: a warm-gradient sheet (Verizon-style). On mobile it's a tall bottom
@@ -342,7 +342,7 @@ export function AskGuruWidget() {
         });
 
         if (!res.ok || !res.body) {
-          let msg = 'Ask AI is temporarily unavailable. Please try again shortly.';
+          let msg = 'Ask AI Guru is temporarily unavailable. Please try again shortly.';
           try {
             const j = await res.json();
             if (j?.error) msg = j.error;
@@ -619,7 +619,7 @@ export function AskGuruWidget() {
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--nemo-mint)] text-[var(--on-mint)]">
             <Sparkles className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
           </span>
-          Ask AI
+          Ask AI Guru
         </button>
       )}
 
