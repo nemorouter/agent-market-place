@@ -1,0 +1,104 @@
+---
+title: Embed an AI Agent
+description: Add a pluggable AI support agent to any site in one line, or run your own grounded on your docs
+author: Nemo Team
+publishedAt: '2026-05-30T00:00:00Z'
+---
+
+Add an AI support agent to any website. It answers from your documentation, grounded, and runs on the same NemoRouter gateway you already use — one key, one bill. Chat and embeddings are both metered on your virtual key.
+
+## Embed the widget
+
+Drop one line before the closing `</body>` tag on any page. It injects a bottom-right launcher that opens a chat panel. The `sk-nemo-` key never reaches the browser — the widget talks to its own backend in an isolated iframe.
+
+```html
+<script src="https://api.nemorouter.ai/agents/widget.js"></script>
+```
+
+That embeds the hosted agent. To brand it as your own and answer from your own documentation, run your own agent below.
+
+## Run your own agent
+
+The agent is one open-source app you fork. You own the frontend, backend, and vector database; NemoRouter is the brain — it serves the chat model and the embeddings.
+
+### Fork and install
+
+```bash
+git clone <your-fork> my-agent
+cd my-agent
+npm install
+```
+
+### Create a virtual key
+
+In your dashboard, open the **API Keys** page and create a virtual key. Set a per-day budget — that becomes your hard spend cap, and it covers chat and embeddings together. The full key is shown once on creation, so copy it before navigating away.
+
+### Configure
+
+Create a `.env.local` file:
+
+```bash
+NEMOROUTER_API_KEY=sk-nemo-your-key-here
+NEMO_BASE_URL=https://api.nemorouter.ai
+MODEL=gemini-2.5-flash-lite
+EMBEDDING_MODEL=text-embedding-005
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SCHEMA=public
+SYSTEM_PROMPT=You are MyCompany's assistant. Answer only from the provided context.
+ALLOWED_ORIGINS=https://mycompany.com,http://localhost:3000
+ADMIN_TOKEN=a-long-random-string
+```
+
+### Seed the knowledge base
+
+Apply the database migration to create the vector store, then index your documentation:
+
+```bash
+psql "$DATABASE_URL" -f supabase/migration.sql
+npm run dev
+npm run ingest
+```
+
+Each documentation chunk is embedded once at ingest time; each visitor question is embedded once at ask time. Both go through your key.
+
+### Deploy
+
+One command per environment. The included container image runs on Google Cloud Run today and any container host tomorrow.
+
+```bash
+npm run deploy:prod
+```
+
+## How it works
+
+```
+You own                         NemoRouter provides
+- the chat widget               - the chat model
+- the backend (RAG)             - the embedding model
+- the vector database           - guardrails, routing, cost tracking
+```
+
+A visitor's question is embedded, matched against your documentation in your own vector database, then answered by the model with that context. Every model call is authenticated by your virtual key, so guardrails, routing, credits, and rate limits all apply automatically.
+
+## Tracking costs
+
+Every chat and every embedding call is metered on your virtual key. You can see costs in three places:
+
+1. A response header `x-nemo-request-cost` on each call.
+2. A per-request ledger with `call_type`, `model`, and `spend`.
+3. The key's aggregate `spend`, which enforces the budget — requests return `402` once the cap is reached.
+
+To see the split between chat and embeddings:
+
+```sql
+select model,
+       count(*) as calls,
+       round(sum(spend)::numeric, 6) as usd
+from "LiteLLM_SpendLogs"
+where "startTime" > now() - interval '24 hours'
+group by model
+order by usd desc;
+```
+
+Embeddings are a few micro-cents per call — small, but real line items that draw on the same budget as chat. Nothing is free or hidden.

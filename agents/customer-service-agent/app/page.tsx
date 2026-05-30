@@ -40,7 +40,7 @@ export default function Page() {
 
         <p style={{ color: '#76716a', fontSize: 15 }}>
           Full setup, customization, and cost tracking:{' '}
-          <a href="/docs.html" style={{ color: '#0d9488', fontWeight: 600 }}>
+          <a href="/docs" style={{ color: '#0d9488', fontWeight: 600 }}>
             read the docs →
           </a>
         </p>
