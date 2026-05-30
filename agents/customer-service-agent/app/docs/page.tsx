@@ -21,7 +21,7 @@ export default function DocsPage() {
     >
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '64px 24px 140px' }}>
         <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', color: C.teal, margin: 0 }}>
-          NEMO ROUTER · AGENT MARKETPLACE
+          NEMO ROUTER · ENTERPRISE MARKETPLACE
         </p>
         <h1 style={{ fontSize: 32, margin: '6px 0 4px', color: C.ink }}>Embed an AI Agent</h1>
         <p style={{ color: C.muted, fontSize: 17 }}>

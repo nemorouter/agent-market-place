@@ -16,7 +16,7 @@ export default function Page() {
     >
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '72px 24px' }}>
         <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', color: '#0d9488', margin: 0 }}>
-          NEMO ROUTER · AGENT MARKETPLACE
+          NEMO ROUTER · ENTERPRISE MARKETPLACE
         </p>
         <h1 style={{ fontSize: 34, margin: '8px 0 4px' }}>Ask AI Guru</h1>
         <p style={{ color: '#76716a', fontSize: 17, lineHeight: 1.5, maxWidth: 560 }}>
