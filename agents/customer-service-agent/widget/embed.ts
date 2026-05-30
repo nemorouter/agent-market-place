@@ -23,8 +23,10 @@
     const d = e.data as { __askguru?: boolean; open?: boolean } | undefined;
     if (!d || !d.__askguru) return;
     if (d.open) {
-      iframe.style.width = 'min(456px, 100vw)';
-      iframe.style.height = 'min(86vh, 712px)';
+      // > 640px so the widget renders its DESKTOP floating-card layout (not the
+      // mobile sheet); the card sits at the iframe's bottom-right corner.
+      iframe.style.width = 'min(720px, 100vw)';
+      iframe.style.height = 'min(88vh, 760px)';
     } else {
       iframe.style.width = '248px';
       iframe.style.height = '96px';
