@@ -4,6 +4,25 @@ This is the **first customer of the marketplace: us.** The support agent on
 `nemorouter.ai`, built from the *same* runtime as every customer agent — no
 special-case code. If it breaks for us, we hear about it before any customer does.
 
+> ## ✅ Live deployment (2026-05-30)
+> Deployed to **Cloud Run** in `nemo-prod-deploy` / `us-central1` as service
+> **`nemo-support-agent`** (image `…/nemo-router/nemo-support-agent`), backed by the
+> existing Nemo **stage** Supabase + the `nemo_amp_db` schema.
+> URL: `https://nemo-support-agent-suz5ioxcsq-uc.a.run.app`
+> Smoke-tested: home `200`, cross-origin `/api/chat` `403`, ingest gate `401`,
+> chat returns a clean error pending the key.
+>
+> **Two steps remain to make it answer + cut over (need a valid `sk-nemo` key):**
+> ```bash
+> # 1) activate (replace the placeholder with a real budgeted virtual key)
+> gcloud run services update nemo-support-agent --region us-central1 \
+>   --project nemo-prod-deploy --update-env-vars NEMOROUTER_API_KEY=sk-nemo-...
+> # 2) index the docs into nemo_amp_db
+> ./scripts/ingest.sh prod https://nemo-support-agent-suz5ioxcsq-uc.a.run.app
+> ```
+> Cutover (point `nemorouter.ai/support` at this service) is a separate, deliberate
+> frontend change — the deploy above is **additive** and does not touch the legacy agent.
+
 > **This folder is an INSTANCE, not a codebase.** It is config + docs + a schema
 > migration only. It reuses the [`../customer-service-agent`](../customer-service-agent)
 > Next.js app. We do **not** duplicate the runtime.
