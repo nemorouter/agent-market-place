@@ -79,8 +79,8 @@ group by model order by usd desc;
         <p style={{ color: C.muted }}>Embeddings are micro-cent line items that draw on the same budget as chat — nothing free or hidden.</p>
       </div>
 
-      {/* Agent open on the docs page so you can ask while you read. */}
-      <AskGuruWidget defaultOpen />
+      {/* Agent open (full two-pane view) on the docs page so you can ask while you read. */}
+      <AskGuruWidget defaultOpen defaultExpanded />
     </main>
   );
 }

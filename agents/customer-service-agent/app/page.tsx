@@ -46,8 +46,8 @@ export default function Page() {
         </p>
       </div>
 
-      {/* Open by default on the demo page so the agent is visible immediately. */}
-      <AskGuruWidget defaultOpen />
+      {/* Open in the full two-pane view on the demo page. */}
+      <AskGuruWidget defaultOpen defaultExpanded />
     </main>
   );
 }

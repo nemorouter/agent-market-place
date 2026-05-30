@@ -244,9 +244,12 @@ const QUICK_LINKS = [
 const WARM_SHEET =
   'bg-[linear-gradient(176deg,#fdeee6_0%,#faf3ec_26%,#f6f4ef_58%,#eef7f0_100%)] dark:bg-[var(--surface-secondary)]';
 
-export function AskGuruWidget({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
+export function AskGuruWidget({
+  defaultOpen = false,
+  defaultExpanded = false,
+}: { defaultOpen?: boolean; defaultExpanded?: boolean } = {}) {
   const [open, setOpen] = useState(defaultOpen);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
