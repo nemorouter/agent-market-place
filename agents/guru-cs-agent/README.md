@@ -1,4 +1,4 @@
-# ask-genie — the Ask Genie (our dogfood)
+# guru-cs-agent — the Ask Guru (our dogfood)
 
 This is the **first customer of the marketplace: us.** The support agent on
 `nemorouter.ai`, built from the *same* runtime as every customer agent — no
@@ -6,19 +6,19 @@ special-case code. If it breaks for us, we hear about it before any customer doe
 
 > ## ✅ Live deployment (2026-05-30)
 > Deployed to **Cloud Run** in `nemo-prod-deploy` / `us-central1` as service
-> **`ask-genie`** (image `…/nemo-router/ask-genie`), backed by the
+> **`guru-cs-agent`** (image `…/nemo-router/guru-cs-agent`), backed by the
 > existing Nemo **stage** Supabase + the `nemo_amp_db` schema.
-> URL: `https://ask-genie-suz5ioxcsq-uc.a.run.app`
+> URL: `https://guru-cs-agent-suz5ioxcsq-uc.a.run.app`
 > Smoke-tested: home `200`, cross-origin `/api/chat` `403`, ingest gate `401`,
 > chat returns a clean error pending the key.
 >
 > **Two steps remain to make it answer + cut over (need a valid `sk-nemo` key):**
 > ```bash
 > # 1) activate (replace the placeholder with a real budgeted virtual key)
-> gcloud run services update ask-genie --region us-central1 \
+> gcloud run services update guru-cs-agent --region us-central1 \
 >   --project nemo-prod-deploy --update-env-vars NEMOROUTER_API_KEY=sk-nemo-...
 > # 2) index the docs into nemo_amp_db
-> ./scripts/ingest.sh prod https://ask-genie-suz5ioxcsq-uc.a.run.app
+> ./scripts/ingest.sh prod https://guru-cs-agent-suz5ioxcsq-uc.a.run.app
 > ```
 > Cutover (point `nemorouter.ai/support` at this service) is a separate, deliberate
 > frontend change — the deploy above is **additive** and does not touch the legacy agent.
@@ -29,7 +29,7 @@ special-case code. If it breaks for us, we hear about it before any customer doe
 
 ## What's different from a normal customer agent
 
-| | Normal customer (e.g. Acme) | Ask Genie |
+| | Normal customer (e.g. Acme) | Ask Guru |
 |---|---|---|
 | Supabase | a **separate** project they own + pay for | the **existing Nemo Supabase** project |
 | DB isolation | `public` schema of their project | a **dedicated schema `nemo_amp_db`** (Rule #12 — never `public`) |
@@ -45,11 +45,11 @@ Use the `customer-service-agent` app with this folder's env + docs:
 
 ```bash
 cd ../customer-service-agent
-cp ../ask-genie/.env.local.example .env.local      # fill ★ values
-cp -r ../ask-genie/docs/* ./docs/                   # nemo support docs
+cp ../guru-cs-agent/.env.local.example .env.local      # fill ★ values
+cp -r ../guru-cs-agent/docs/* ./docs/                   # nemo support docs
 
 # 1) Apply the schema migration in the EXISTING Nemo Supabase (creates nemo_amp_db):
-#    psql "$DATABASE_URL" -f ../ask-genie/supabase/migration.sql
+#    psql "$DATABASE_URL" -f ../guru-cs-agent/supabase/migration.sql
 #    then expose nemo_amp_db to PostgREST (Settings → API → Exposed schemas) and
 #    NOTIFY pgrst, 'reload schema';
 
@@ -57,7 +57,7 @@ cp -r ../ask-genie/docs/* ./docs/                   # nemo support docs
 npm run dev && npm run ingest
 
 # 3) Deploy to Cloud Run (replaces the legacy support agent):
-cp ../ask-genie/.env.prod.example .env.prod         # fill ★ values
+cp ../guru-cs-agent/.env.prod.example .env.prod         # fill ★ values
 npm run deploy:prod
 ```
 
