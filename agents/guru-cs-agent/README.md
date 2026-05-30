@@ -1,4 +1,4 @@
-# guru-cs-agent — the Ask Guru (our dogfood)
+# guru-cs-agent — the Ask AI Guru (our dogfood)
 
 This is the **first customer of the marketplace: us.** The support agent on
 `nemorouter.ai`, built from the *same* runtime as every customer agent — no
@@ -29,7 +29,7 @@ special-case code. If it breaks for us, we hear about it before any customer doe
 
 ## What's different from a normal customer agent
 
-| | Normal customer (e.g. Acme) | Ask Guru |
+| | Normal customer (e.g. Acme) | Ask AI Guru |
 |---|---|---|
 | Supabase | a **separate** project they own + pay for | the **existing Nemo Supabase** project |
 | DB isolation | `public` schema of their project | a **dedicated schema `nemo_amp_db`** (Rule #12 — never `public`) |

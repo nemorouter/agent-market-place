@@ -8,7 +8,7 @@
 # If the marketplace breaks, we feel it before any customer does.
 
 id: guru-cs-agent
-name: Ask Guru
+name: Ask AI Guru
 
 # Any model Nemo Router serves, or a model_group alias (routing/fallback applied by Nemo).
 model: gemini-2.5-flash-lite
