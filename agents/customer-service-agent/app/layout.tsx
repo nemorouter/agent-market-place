@@ -1,3 +1,4 @@
+import './globals.css';
 import type { ReactNode } from 'react';
 
 const AGENT_NAME = process.env.NEXT_PUBLIC_AGENT_NAME || 'Support Agent';

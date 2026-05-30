@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — copied verbatim (light) from the Nemo frontend globals.css so
+   the ported AskGuruWidget renders pixel-identical to the live Ask AI agent. */
+:root {
+  --nemo-mint: #90fca6;
+  --on-mint: #000000;
+  --nemo-emerald: #10b981;
+  --nemo-indigo: #0d9488;
+  --nemo-indigo-dark: #0f766e;
+  --nemo-coral: #ff6c5e;
+  --nemo-coral-dark: #e5544a;
+
+  --surface-primary: #ffffff;
+  --surface-secondary: #faf9f6;
+  --surface-hover: #f1efe9;
+
+  --text-primary: #0f0e0c;
+  --text-secondary: #1c1b18;
+  --text-muted: #76716a;
+
+  --border-subtle: rgba(15, 14, 12, 0.06);
+  --border-light: rgba(15, 14, 12, 0.10);
+  --border-medium: rgba(15, 14, 12, 0.15);
+}
+
+/* Animations the widget references (verbatim from the source). */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ask-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ask-eq {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.fade-up { opacity: 0; animation: fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.fade-up-d0 { animation-delay: 0ms; }
+.fade-up-d1 { animation-delay: 20ms; }
+.fade-up-d2 { animation-delay: 40ms; }
+.fade-up-d3 { animation-delay: 60ms; }
+.fade-up-d4 { animation-delay: 80ms; }
+.fade-up-d5 { animation-delay: 100ms; }
+.fade-up-d6 { animation-delay: 120ms; }
+.fade-up-d7 { animation-delay: 140ms; }
+.fade-up-d8 { animation-delay: 160ms; }
+.ask-fade { animation: ask-fade 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.ask-eq { transform-origin: bottom; animation: ask-eq 900ms ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .ask-fade, .ask-eq { animation: none; opacity: 1; }
+}
+
+html, body { padding: 0; margin: 0; }
