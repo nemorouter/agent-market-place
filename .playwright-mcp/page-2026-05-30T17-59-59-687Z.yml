@@ -1,0 +1,10 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - heading "Ask AI Guru" [level=1] [ref=e3]
+    - generic [ref=e4]:
+      - generic [ref=e9]: How do I generate a virtual API key?
+      - generic [ref=e10]: "To create a Nemo Router API (virtual) key, sign in at https://nemorouter.ai, navigate to the Keys page, and click \"Create virtual key.\" The key begins with `sk-nemo-` and is displayed only once upon creation, so copy it immediately. You can also set a per-key budget and rate limit."
+    - generic [ref=e5]:
+      - textbox "Ask a question…" [active] [ref=e6]
+      - button "Send" [ref=e7]
+  - alert [ref=e8]

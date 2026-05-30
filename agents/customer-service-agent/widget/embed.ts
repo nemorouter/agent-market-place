@@ -30,10 +30,11 @@
     `<button id="nemo-send" style="border:0;background:${accent};color:#fff;border-radius:9px;padding:0 14px">Send</button></div>`;
 
   const launcher = document.createElement('button');
-  launcher.textContent = '💬';
+  // Labeled pill so the launcher reads e.g. "💬 Ask AI Guru" (data-title), not a bare icon.
+  launcher.textContent = `💬 ${title}`;
   launcher.style.cssText =
-    `position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;border:0;background:${accent};` +
-    'color:#fff;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.22);z-index:2147483647';
+    `position:fixed;bottom:24px;right:24px;height:52px;padding:0 20px;border-radius:26px;border:0;background:${accent};` +
+    'color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.22);z-index:2147483647';
   launcher.onclick = () => {
     panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
   };
