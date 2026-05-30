@@ -9,7 +9,34 @@ metadata:
 
 # amp-architecture — Top-level integration contract
 
-> **Status:** TODO. Documentation-only. No code in `~/nemorouter/agent-market-place/` yet.
+> **Status (2026-05-30):** PARTIALLY IMPLEMENTED. The standalone-app model below is built
+> under `agents/`. See `docs/superpowers/specs/2026-05-30-standalone-agent-marketplace-design.md`.
+> The placeholders / Phase-2 (MCP tools, playground) notes in this skill still stand.
+
+## Implemented model (2026-05-30) — read this first
+
+The shipped shape is **standalone, forkable agent apps** under `agents/`, not an in-process
+runtime inside nemo-backend:
+
+- **Nemo Router provides only the LLM (chat + vision + embeddings) + the MCP tool gateway.**
+  It enforces guardrails, routing/fallback, credits, and rate limits server-side. The agent
+  app never reimplements them — see `agents/customer-service-agent/lib/nemo.ts`.
+- **The customer owns the frontend, backend, and vector DB** (their own Supabase, pgvector),
+  using ONE `sk-nemo` virtual key (a named key with a per-day budget = the hard spend cap).
+- **`agents/customer-service-agent/`** is the runnable runtime (Acme Inc is the example):
+  multi-env (`.env.local/.stage/.prod`), multi-cloud deploy (local + GCP today, Azure/AWS
+  tomorrow), embeddable widget, tests + CI.
+- **`agents/nemo-support-agent/`** is the **dogfood instance** (the support agent on
+  `nemorouter.ai`) — an INSTANCE of the same runtime, not a duplicate. It uses the
+  **existing Nemo Supabase** isolated in a dedicated **`nemo_amp_db`** schema (Rule #12:
+  never the `public` schema). `SUPABASE_SCHEMA` selects it; no code change.
+- A pure-RAG agent needs **zero new nemo-backend routes** (strictest reading of "no new APIs").
+  Credentialed tools (Phase 2) still use the central MCP gateway documented in the rest of
+  this skill.
+
+The interpretation-4.A discussion below remains the reference for the MCP/tool side.
+
+> **Legacy status (superseded by the line above):** TODO. Documentation-only.
 
 ## The shape
 

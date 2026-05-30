@@ -1,0 +1,50 @@
+# agent.config.yaml — the Nemo Support agent (our own dogfood).
+#
+# This is an INSTANCE of the customer-service-agent runtime — NOT a separate codebase.
+# To run it: use the ../customer-service-agent app, with this folder's .env + ./docs +
+# supabase/migration.sql. See README.md.
+#
+# It is the first customer of the marketplace: the support agent on nemorouter.ai.
+# If the marketplace breaks, we feel it before any customer does.
+
+id: nemo-support
+name: Nemo Support
+
+# Any model Nemo Router serves, or a model_group alias (routing/fallback applied by Nemo).
+model: gemini-2.5-flash-lite
+embedding_model: text-embedding-3-small
+
+system_prompt: |
+  You are the Nemo Router support assistant. Answer questions about Nemo Router —
+  pricing, virtual keys, credits, models, the SDK, and the dashboard — using ONLY
+  the information in the provided context. If the context doesn't cover it, say so
+  plainly and point the user to https://nemorouter.ai/docs or support@nemorouter.ai.
+  Never invent pricing or limits. Keep answers concise and friendly.
+
+top_k: 6
+max_steps: 4
+guardrails: []
+
+# public = any Nemo key can call it (the platform support agent, not org-scoped).
+visibility: public
+
+# Knowledge sources (read by /api/ingest).
+knowledge:
+  docs_path: ./docs
+  docs_base_url: https://nemorouter.ai/docs
+  website_url: https://nemorouter.ai/docs
+  website_max_pages: 120
+
+# Storage: the EXISTING Nemo Supabase, isolated in the nemo_amp_db schema (Rule #12).
+storage:
+  supabase: existing-nemo-project
+  schema: nemo_amp_db
+
+security:
+  allowed_origins:
+    - https://nemorouter.ai
+    - https://*.nemorouter.ai
+    - http://localhost:3000
+  rate_limit: { per_ip_per_min: 30, per_session_per_min: 12, per_ip_per_day: 800 }
+  captcha: { enabled: true, provider: turnstile, trigger: after_3_messages }
+  require_email: false

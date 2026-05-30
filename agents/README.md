@@ -7,6 +7,7 @@ per environment and deploy with one command.
 | Agent | What it is | Status |
 |---|---|---|
 | [`customer-service-agent`](./customer-service-agent) | Themable support agent — RAG over your docs + website. The flagship, fully runnable. **Acme Inc** is the worked example. | ✅ runnable local + Cloud Run |
+| [`nemo-support-agent`](./nemo-support-agent) | **Our dogfood** — the support agent on `nemorouter.ai`. Instance of the customer-service-agent runtime, but uses the **existing Nemo Supabase** in a dedicated **`nemo_amp_db`** schema (Rule #12 — never `public`). Replaces the legacy support agent. | 🧩 instance (config + docs + schema) |
 | [`restaurant-agent`](./restaurant-agent) | Same runtime, restaurant domain (menu, hours, reservations). Config + docs only — copy the customer-service-agent app and swap them. | 🧩 config example |
 
 ## The model (every agent here)
