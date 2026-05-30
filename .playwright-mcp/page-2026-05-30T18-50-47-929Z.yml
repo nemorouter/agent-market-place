@@ -1,9 +1,0 @@
-- generic [active] [ref=e1]:
-  - main [ref=e2]:
-    - generic [ref=e3]:
-      - heading "Ask AI Guru" [level=1] [ref=e4]
-      - paragraph [ref=e5]: The launcher is bottom-right — click it to chat. This is a 1:1 replica of the Nemo Router “Ask AI” agent, wired to Ask AI Guru’s own knowledge base.
-    - button "Ask AI Guru about Nemo Router" [ref=e6] [cursor=pointer]:
-      - img [ref=e8]
-      - text: Ask AI Guru
-  - alert [ref=e10]

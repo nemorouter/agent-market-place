@@ -5,3 +5,7 @@ __pycache__/
 .DS_Store
 knowledge-base.json
 demo/agent-widget.global.js
+
+# local test artifacts (Playwright screenshots)
+*.png
+.playwright-mcp/
