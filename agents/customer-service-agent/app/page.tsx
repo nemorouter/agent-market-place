@@ -78,7 +78,7 @@ export default function Page() {
 
   return (
     <main style={{ ...theme, maxWidth: 640, margin: '40px auto', padding: 16, color: 'var(--agent-ink)' }}>
-      <h1 style={{ fontSize: 20 }}>Support Agent</h1>
+      <h1 style={{ fontSize: 20 }}>{process.env.NEXT_PUBLIC_AGENT_NAME || 'Support Agent'}</h1>
       <div style={{ minHeight: 320, display: 'flex', flexDirection: 'column', gap: 8, margin: '16px 0' }}>
         {messages.map((m, i) => (
           <div

@@ -9,6 +9,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Brand name baked into the page/metadata at build time (NEXT_PUBLIC_* is build-time).
+# The embeddable widget is branded separately via the <script> data-title attribute.
+ARG NEXT_PUBLIC_AGENT_NAME="Support Agent"
+ENV NEXT_PUBLIC_AGENT_NAME=$NEXT_PUBLIC_AGENT_NAME
 RUN npm run build
 
 FROM node:20-alpine AS runner

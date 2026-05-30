@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 
+const AGENT_NAME = process.env.NEXT_PUBLIC_AGENT_NAME || 'Support Agent';
+
 export const metadata = {
-  title: 'Support Agent',
-  description: 'Open-source support agent powered by Nemo Router.',
+  title: AGENT_NAME,
+  description: `${AGENT_NAME} — powered by Nemo Router.`,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

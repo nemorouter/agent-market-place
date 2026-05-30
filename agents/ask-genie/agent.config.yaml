@@ -7,8 +7,8 @@
 # It is the first customer of the marketplace: the support agent on nemorouter.ai.
 # If the marketplace breaks, we feel it before any customer does.
 
-id: nemo-support
-name: Nemo Support
+id: ask-genie
+name: Ask Genie
 
 # Any model Nemo Router serves, or a model_group alias (routing/fallback applied by Nemo).
 model: gemini-2.5-flash-lite
