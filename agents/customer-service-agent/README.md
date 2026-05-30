@@ -118,6 +118,15 @@ Same fork, **their own** Supabase project, **their own** `sk-nemo` key, their ow
 `ALLOWED_ORIGINS`. Nothing is shared except Nemo Router. To run fully outside Nemo,
 point `NEMO_BASE_URL` at a self-hosted Nemo gateway.
 
+## Develop & verify
+```bash
+npm run build:widget   # bundle widget/embed.ts → public/widget.js (also runs on build)
+npm run typecheck      # tsc --noEmit
+npm test               # vitest (origin allow-list, rate limit, chunking)
+npm run build          # production build (Next standalone)
+```
+CI runs typecheck + tests + build on every push/PR (`.github/workflows/ci.yml`).
+
 ## Extending it
 - **Frontend:** edit [`app/page.tsx`](app/page.tsx) / [`widget/embed.ts`](widget/embed.ts) — theme via CSS vars / `data-*`, add slots, wire events.
 - **Backend:** add loop hooks, new ingestion adapters (Notion/PDF/sitemap) in [`lib/ingest.ts`](lib/ingest.ts), or extend retrieval filters in [`lib/retrieval.ts`](lib/retrieval.ts).

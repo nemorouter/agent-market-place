@@ -6,8 +6,12 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
+    "build:widget": "esbuild widget/embed.ts --bundle --minify --format=iife --outfile=public/widget.js",
+    "prebuild": "npm run build:widget",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "deploy:local": "bash scripts/deploy.sh local",
     "deploy:stage": "bash scripts/deploy.sh stage",
     "deploy:prod": "bash scripts/deploy.sh prod",
@@ -23,6 +27,8 @@
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "typescript": "^5.5.0"
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   }
 }

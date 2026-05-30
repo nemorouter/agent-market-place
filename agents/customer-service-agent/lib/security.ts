@@ -19,15 +19,12 @@ export function originAllowed(origin: string | null, allow: string[]): boolean {
     return false;
   }
   return allow.some((rule) => {
-    let r = rule.trim();
-    try {
-      r = new URL(r).host; // tolerate full-URL rules like https://acme.com
-    } catch {
-      /* rule is a bare host */
-    }
+    // Normalize the rule to a bare host. Don't use new URL() here — it throws on the
+    // "*" in wildcard rules like https://*.acme.com. Strip scheme + path manually.
+    const r = rule.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (r.startsWith('*.')) {
-      const suffix = r.slice(1); // ".acme.com"
-      return host === r.slice(2) || host.endsWith(suffix);
+      const base = r.slice(2); // "acme.com"
+      return host === base || host.endsWith('.' + base);
     }
     return host === r;
   });

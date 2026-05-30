@@ -2,11 +2,12 @@
 # deploy.sh <local|stage|prod> — configure once via .env.<env>, deploy with one command.
 #
 #   local  → build + run on http://localhost:3000
-#   gcp    → Google Cloud Run (today)      — set CLOUD=gcp in the env file
-#   azure  → Azure Container Apps (tomorrow)
-#   aws    → ECS/App Runner (later)
+#   gcp    → Google Cloud Run            (today)   — CLOUD=gcp
+#   azure  → Azure Container Apps        (today)   — CLOUD=azure
+#   aws    → ECS / App Runner            (planned) — CLOUD=aws
 #
 # The cloud is chosen by the CLOUD var inside .env.<env> (mirrors Nemo's active-cloud).
+# The same Dockerfile (Next standalone, $PORT-driven) is used by every cloud.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -36,8 +37,8 @@ case "$CLOUD" in
     : "${SERVICE_NAME:?set SERVICE_NAME in $FILE}"
     command -v gcloud >/dev/null || { echo "✗ gcloud not found"; exit 1; }
     TMP="$(mktemp).yaml"
-    python3 scripts/env-to-yaml.py "$FILE" > "$TMP"
-    echo "▶ gcloud run deploy $SERVICE_NAME (Cloud Run, $GCP_REGION) — builds from Dockerfile"
+    python3 scripts/env-to-yaml.py "$FILE" yaml > "$TMP"
+    echo "▶ gcloud run deploy $SERVICE_NAME (Cloud Run, $GCP_REGION) — builds the Dockerfile"
     gcloud run deploy "$SERVICE_NAME" \
       --source . \
       --project "$GCP_PROJECT" \
@@ -47,17 +48,32 @@ case "$CLOUD" in
       --port 8080 \
       --env-vars-file "$TMP"
     rm -f "$TMP"
-    echo "✓ deployed. Re-run knowledge ingest with: ./scripts/ingest.sh $ENV <SERVICE_URL>"
+    echo "✓ deployed. Index prod KB: ./scripts/ingest.sh $ENV <SERVICE_URL>"
     ;;
 
   azure)
-    echo "→ Azure Container Apps path is planned (tomorrow). The Dockerfile already"
-    echo "  works on ACA; the dispatch step lands next. Use CLOUD=gcp for today."
-    exit 2
+    : "${AZURE_RESOURCE_GROUP:?set AZURE_RESOURCE_GROUP in $FILE}"
+    : "${AZURE_LOCATION:?set AZURE_LOCATION in $FILE}"
+    : "${SERVICE_NAME:?set SERVICE_NAME in $FILE}"
+    command -v az >/dev/null || { echo "✗ az CLI not found"; exit 1; }
+    # Build the --env-vars array (bash 3.2-safe; no mapfile for macOS).
+    ENVARGS=()
+    while IFS= read -r kv; do [ -n "$kv" ] && ENVARGS+=("$kv"); done \
+      < <(python3 scripts/env-to-yaml.py "$FILE" kv)
+    echo "▶ az containerapp up $SERVICE_NAME (Azure Container Apps, $AZURE_LOCATION)"
+    az containerapp up \
+      --name "$SERVICE_NAME" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --location "$AZURE_LOCATION" \
+      --source . \
+      --ingress external \
+      --target-port 8080 \
+      --env-vars "${ENVARGS[@]}"
+    echo "✓ deployed. Index prod KB: ./scripts/ingest.sh $ENV <SERVICE_URL>"
     ;;
 
   aws)
-    echo "→ AWS (ECS/App Runner) path is planned. Use CLOUD=gcp for today."
+    echo "→ AWS (ECS / App Runner) path is planned. Use CLOUD=gcp or CLOUD=azure today."
     exit 2
     ;;
 
