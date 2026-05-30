@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ask AI Guru — Docs</title>
+  <style>
+    :root { --ink:#0f0e0c; --muted:#76716a; --mint:#90fca6; --teal:#0d9488; --line:rgba(15,14,12,.1); }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:var(--ink);
+           background:linear-gradient(160deg,#faf7f2,#eef7f0); line-height:1.55; }
+    main { max-width:760px; margin:0 auto; padding:64px 24px 120px; }
+    h1 { font-size:32px; margin:6px 0 4px; }
+    h2 { font-size:22px; margin:40px 0 10px; border-top:1px solid var(--line); padding-top:28px; }
+    h3 { font-size:16px; margin:22px 0 6px; }
+    p, li { color:#1c1b18; }
+    .eyebrow { font-size:13px; font-weight:600; letter-spacing:.04em; color:var(--teal); margin:0; }
+    .muted { color:var(--muted); }
+    pre { background:var(--ink); color:#eef7f0; padding:16px 18px; border-radius:12px; font-size:13px; overflow-x:auto; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    p code, li code { background:#f1efe9; padding:1px 6px; border-radius:6px; font-size:13px; }
+    table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+    a { color:var(--teal); font-weight:600; text-decoration:none; }
+    .pill { display:inline-block; background:var(--mint); color:#000; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">NEMO ROUTER · AGENT MARKETPLACE</p>
+  <h1>Ask AI Guru — Docs</h1>
+  <p class="muted">A pluggable AI support agent. Embed the hosted one in seconds, or run your own —
+    your docs, your brand — all powered by the Nemo Router gateway (one key, one bill).</p>
+
+  <h2>1 · Embed the widget <span class="pill">30 seconds</span></h2>
+  <p>Drop one line before <code>&lt;/body&gt;</code> on any page. It injects a bottom-right launcher
+     that opens the chat — the <code>sk-nemo</code> key never reaches the browser (the widget talks to
+     its own backend in an iframe).</p>
+  <pre><code>&lt;script src="https://guru-cs-agent-suz5ioxcsq-uc.a.run.app/widget.js"&gt;&lt;/script&gt;</code></pre>
+  <p class="muted">That's the hosted “Ask AI Guru” (answers about Nemo Router). To brand it as your
+     own and answer from <em>your</em> docs, run your own agent below.</p>
+
+  <h2>2 · Run your own agent</h2>
+  <p>The widget is one open-source app you fork. You own the frontend, backend, and vector DB;
+     Nemo Router is the brain (LLM + embeddings).</p>
+  <h3>a. Fork &amp; install</h3>
+  <pre><code>git clone &lt;your-fork&gt; my-agent &amp;&amp; cd my-agent
+npm install</code></pre>
+  <h3>b. Create a virtual key (the agent's identity + budget)</h3>
+  <p>In the Nemo dashboard → <strong>Keys → Create virtual key</strong>. Set a per-day budget — that's
+     your hard spend cap (covers chat <em>and</em> embeddings). Copy the <code>sk-nemo-…</code>.</p>
+  <h3>c. Point at your storage + configure</h3>
+  <pre><code># .env.local
+NEMOROUTER_API_KEY=sk-nemo-...
+MODEL=gemini-2.5-flash-lite
+EMBEDDING_MODEL=text-embedding-005        # Vertex, 768-dim
+SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...             # (or SUPABASE_ANON_KEY for read-only retrieval)
+SUPABASE_SCHEMA=public
+SYSTEM_PROMPT=You are MyCo's assistant. Answer only from the provided context.
+ALLOWED_ORIGINS=https://myco.com,https://*.myco.com,http://localhost:3000
+ADMIN_TOKEN=&lt;long-random&gt;</code></pre>
+  <h3>d. Seed the knowledge base + run</h3>
+  <pre><code>psql "$DATABASE_URL" -f supabase/migration.sql   # pgvector KB + RLS
+npm run dev                                      # http://localhost:3000
+npm run ingest                                   # crawl/ingest your docs → embeddings → KB</code></pre>
+  <h3>e. Deploy (one command per env)</h3>
+  <pre><code>npm run deploy:prod      # Google Cloud Run today; CLOUD=azure/aws tomorrow</code></pre>
+  <p class="muted">Customize the launcher brand with <code>data-title</code> on the script tag, or set
+     <code>NEXT_PUBLIC_AGENT_NAME</code> at build for the hosted page.</p>
+
+  <h2>3 · Tracking costs <a href="#" id="cost-anchor"></a></h2>
+  <p>Every call — chat <strong>and embeddings</strong> — goes through the Nemo gateway on your virtual
+     key, so all of it is metered, headered, logged, and budget-capped. See
+     <a href="https://github.com/nemorouter/agent-market-place/blob/main/docs/track-amp-nemo-costs.md">track-amp-nemo-costs</a>
+     for the full guide. The short version:</p>
+  <table>
+    <tr><th>Where</th><th>What you get</th></tr>
+    <tr><td>Response header</td><td><code>x-nemo-request-cost</code> on every chat + embedding response</td></tr>
+    <tr><td><code>LiteLLM_SpendLogs</code></td><td>per-request ledger: <code>call_type</code>, <code>model</code>, <code>spend</code></td></tr>
+    <tr><td><code>LiteLLM_VerificationToken.spend</code></td><td>aggregate key spend — enforces the budget</td></tr>
+  </table>
+  <h3>Example: cost split by model (chat vs embeddings)</h3>
+  <pre><code>select model, count(*) as calls, round(sum(spend)::numeric, 6) as usd
+from "LiteLLM_SpendLogs"
+where "startTime" &gt; now() - interval '24 hours'
+group by model order by usd desc;
+-- vertex_ai/gemini-2.5-flash-lite  | 8  | 0.001271   (chat)
+-- vertex_ai/text-embedding-005     | 99 | 0.000637   (embeddings — captured!)</code></pre>
+  <p class="muted">Embeddings are real line items (one per ingested chunk + one per question). They draw
+     down the same key budget as chat — nothing is free or hidden.</p>
+</main>
+</body>
+</html>

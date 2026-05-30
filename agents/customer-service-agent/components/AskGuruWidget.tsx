@@ -244,8 +244,8 @@ const QUICK_LINKS = [
 const WARM_SHEET =
   'bg-[linear-gradient(176deg,#fdeee6_0%,#faf3ec_26%,#f6f4ef_58%,#eef7f0_100%)] dark:bg-[var(--surface-secondary)]';
 
-export function AskGuruWidget() {
-  const [open, setOpen] = useState(false);
+export function AskGuruWidget({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
+  const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');

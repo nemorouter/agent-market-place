@@ -5,6 +5,28 @@
 > **Sibling repo under** `~/nemorouter/`, alongside `nemo-router-mono-repo`, `super-admin-dashboard`, `nemo-infra-cicd`, `dify-integration`, `onyx-integration`. Will become its own independent **public** git repo when work begins.
 > **First customer:** us — the Nemo Support Agent on `nemorouter.ai`. See `.claude/skills/amp-architecture/references/nemo-support-agent-dogfood.md`.
 
+## ✅ Live: Ask AI Guru (2026-05-30)
+
+The flagship agent — **Ask AI Guru** — is **live on prod** (Cloud Run, `nemo-prod-deploy`):
+**https://guru-cs-agent-suz5ioxcsq-uc.a.run.app** (demo page opens the widget by default;
+docs at `/docs.html`). It's a 1:1 of the Nemo "Ask AI" widget, grounded on the **full Nemo
+docs** (90 chunks, prod Supabase `nemo.kb_chunks`), answering on the **Guru Kallam** virtual key.
+
+**Embed it anywhere — one line:**
+```html
+<script src="https://guru-cs-agent-suz5ioxcsq-uc.a.run.app/widget.js"></script>
+```
+
+| Topic | Doc |
+|---|---|
+| Embed + run your own agent | served `/docs.html` (per agent) |
+| **Cost tracking (chat + embeddings)** | [`docs/track-amp-nemo-costs.md`](docs/track-amp-nemo-costs.md) |
+| Architecture + decisions | [`docs/superpowers/specs/2026-05-30-standalone-agent-marketplace-design.md`](docs/superpowers/specs/2026-05-30-standalone-agent-marketplace-design.md) |
+| The runnable app | [`agents/customer-service-agent/`](agents/customer-service-agent/) · instances `agents/guru-cs-agent`, `agents/restaurant-agent` |
+
+**Costs are fully captured** — every chat *and embedding* call is metered on the key
+(`x-nemo-request-cost` header → `LiteLLM_SpendLogs` → key `spend`/budget). See the cost doc.
+
 ## What this is
 
 A planned Nemo Router ecosystem product: a **pluggable agent marketplace** where customers run agents (chat widgets, automations) that authenticate with the *same* `sk-nemo-xxx` virtual key they already use for LLM calls. Tool calls, LLM calls, guardrails, observability, and billing flow through the **existing Nemo API gateway** (`api.nemorouter.ai`) — no second product surface to learn, one bill, one credit ledger.
