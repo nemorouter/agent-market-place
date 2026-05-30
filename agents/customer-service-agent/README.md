@@ -67,36 +67,49 @@ npm install
 - Set an **RPM/TPM rate limit** → server-side backstop.
 - Confirm Nemo serves your `MODEL` and `EMBEDDING_MODEL` (dashboard → Models / `GET /v1/models`).
 
-### 4. Configure env
+### 4. Configure env — one file per environment
+There are three env files; copy the example you need and fill the ★ values:
 ```bash
-cp .env.example .env.local
-# fill in NEMOROUTER_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-# ALLOWED_ORIGINS, and a long random ADMIN_TOKEN.
+cp .env.local.example .env.local     # local dev   (CLOUD=local)
+cp .env.stage.example .env.stage     # staging     (CLOUD=gcp)
+cp .env.prod.example  .env.prod      # production  (CLOUD=gcp ; tomorrow: azure/aws)
 ```
+For local you only need 4 values: `NEMOROUTER_API_KEY`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_TOKEN`. The real `.env.*` files are gitignored.
 
-### 5. Add knowledge + index it
-- Drop your Markdown into `./docs` (sample Acme docs are included), and/or set `WEBSITE_URL`.
-- Index into Acme's Supabase:
+### 5. Run Acme locally + index its knowledge
 ```bash
-npm run dev   # starts on http://localhost:3000
-curl -X POST http://localhost:3000/api/ingest \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+npm run dev            # http://localhost:3000  (reads .env.local)
+npm run ingest         # reads ./docs (+ WEBSITE_URL) → embeds → Acme's Supabase
 # → { "ok": true, "sources": N, "chunks": M }
 ```
+Open http://localhost:3000 and ask "how do I reset my password?" — Acme answers
+from its own KB. **That's the local "boom, it works" loop.**
 
-### 6. Test + embed
-- Open http://localhost:3000 and ask a question.
-- Embed on Acme's site with one tag (the widget talks only to your `/api/chat`,
-  so the key never reaches the browser):
+### 6. Embed the widget
+One tag on Acme's site (the widget talks only to your `/api/chat`, so the
+`sk-nemo` key never reaches the browser):
 ```html
 <script src="https://YOUR-DEPLOY/widget.js"
         data-endpoint="https://YOUR-DEPLOY/api/chat"
         data-accent="#4f46e5" data-title="Acme Support"></script>
 ```
 
-### 7. Deploy
-Deploy to Vercel (or your own infra). Set the same env vars in the host. Re-run
-`/api/ingest` whenever Acme's docs change.
+### 7. Deploy — one command per environment
+The cloud is chosen by `CLOUD` inside each env file (mirrors Nemo's `active-cloud`).
+```bash
+npm run deploy:local   # build + run locally
+npm run deploy:stage   # → Google Cloud Run  (CLOUD=gcp)
+npm run deploy:prod    # → Google Cloud Run  (CLOUD=gcp)
+```
+**Today:** `CLOUD=gcp` deploys to Google Cloud Run (`gcloud run deploy --source .`,
+builds the included `Dockerfile`, passes env via `--env-vars-file`).
+**Tomorrow:** set `CLOUD=azure` (Container Apps) or `CLOUD=aws` — same files, same
+command; the dispatch stub already lives in `scripts/deploy.sh`. The image is
+`$PORT`-driven so it runs unchanged on any container host. After deploy, index prod:
+```bash
+./scripts/ingest.sh prod https://acme-support-xxxx.run.app
+```
 
 ---
 
@@ -115,6 +128,11 @@ point `NEMO_BASE_URL` at a self-hosted Nemo gateway.
 app/page.tsx          themable chat tester (frontend extension point)
 app/api/chat/route.ts public chat: Layers 1-3 → retrieve → stream from Nemo
 app/api/ingest/route.ts admin-gated re-index
+Dockerfile            Next standalone image (Cloud Run / ACA / any container host)
+scripts/deploy.sh     one-command deploy: local | gcp (today) | azure/aws (tomorrow)
+scripts/ingest.sh     re-index against local or a deployed URL
+scripts/env-to-yaml.py  .env.<env> → Cloud Run --env-vars-file (comma-safe)
+.env.local/stage/prod.example  per-environment config (copy → fill ★ → deploy)
 lib/nemo.ts           the ONLY model client — guardrails/routing/credits live here
 lib/retrieval.ts      pgvector search (extend: filters/hybrid)
 lib/ingest.ts         docs + website → chunks → embeddings → Supabase

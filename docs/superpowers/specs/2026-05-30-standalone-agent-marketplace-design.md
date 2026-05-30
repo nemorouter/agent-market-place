@@ -233,6 +233,9 @@ Both coexist: **pure-RAG agents run standalone; credentialed-tool agents use the
 | 2026-05-30 | Embeddings = Nemo `/v1/embeddings` only for v1 (local fallback = Phase 2) | Simplest; vision/chat/embeddings all one provider. |
 | 2026-05-30 | Marketplace v1 = template gallery + Deploy-to-Vercel + dashboard env/example | Scales to millions of independent deploys; hosted one-click later. |
 | 2026-05-30 | Pure-RAG v1; credentialed tools via MCP gateway = Phase 2 | Lightest launch; no vault/new routes needed for v1. |
+| 2026-05-30 | Repo layout = `agents/<name>/` (production apps), not `templates/` | Each agent is a self-contained, forkable, deployable app (FE+BE+infra). |
+| 2026-05-30 | Multi-env (`.env.local/.stage/.prod`) + `CLOUD`-dispatched deploy | One file per env, one command per env. `local` + `gcp` (Cloud Run) today; `azure`/`aws` stubbed (same Dockerfile, `$PORT`-driven). Mirrors Nemo `active-cloud`. |
+| 2026-05-30 | Next.js `output: 'standalone'` + Dockerfile | One image runs on Cloud Run today, Azure Container Apps / any host tomorrow. |
 
 ## 13. Implementation phases (drives the plan)
 

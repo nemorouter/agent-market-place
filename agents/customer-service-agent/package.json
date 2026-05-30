@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "deploy:local": "bash scripts/deploy.sh local",
+    "deploy:stage": "bash scripts/deploy.sh stage",
+    "deploy:prod": "bash scripts/deploy.sh prod",
+    "ingest": "bash scripts/ingest.sh local"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

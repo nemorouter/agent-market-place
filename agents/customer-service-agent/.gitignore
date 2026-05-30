@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Real env files hold secrets — NEVER commit. Only the *.example templates are tracked.
+.env
+.env.local
+.env.stage
+.env.prod
+.env*.local
+!.env.local.example
+!.env.stage.example
+!.env.prod.example
