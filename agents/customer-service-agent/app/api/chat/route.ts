@@ -55,23 +55,26 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: 'captcha_required' }, 428);
   }
 
-  // Retrieve from the customer's OWN knowledge base
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const question = typeof lastUser?.content === 'string' ? lastUser.content : '';
-  let context = '';
-  let citations: Array<{ title: string; url: string | null }> = [];
-  if (question) {
-    const chunks = await retrieve(question, cfg.embeddingModel, cfg.topK);
-    context = chunks.map((c, i) => `[${i + 1}] ${c.title}\n${c.content}`).join('\n\n');
-    citations = chunks.map((c) => ({ title: c.title, url: c.url }));
-  }
-
-  const system: ChatMessage = {
-    role: 'system',
-    content: `${cfg.systemPrompt}\n\nContext:\n${context || '(no relevant context found)'}`,
-  };
 
   try {
+    // Retrieve from the customer's OWN knowledge base. This calls Nemo /v1/embeddings,
+    // so it must live INSIDE the try — a Nemo error here (bad key, 402, guardrail) must
+    // surface as a clean JSON error, not an unhandled 500.
+    let context = '';
+    let citations: Array<{ title: string; url: string | null }> = [];
+    if (question) {
+      const chunks = await retrieve(question, cfg.embeddingModel, cfg.topK);
+      context = chunks.map((c, i) => `[${i + 1}] ${c.title}\n${c.content}`).join('\n\n');
+      citations = chunks.map((c) => ({ title: c.title, url: c.url }));
+    }
+
+    const system: ChatMessage = {
+      role: 'system',
+      content: `${cfg.systemPrompt}\n\nContext:\n${context || '(no relevant context found)'}`,
+    };
+
     // Nemo applies guardrails + routing/fallback + credit reserve+settle here.
     const upstream = await chatStream({
       model: cfg.model,
