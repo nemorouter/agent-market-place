@@ -26,7 +26,7 @@ runtime inside nemo-backend:
 - **`agents/customer-service-agent/`** is the runnable runtime (Acme Inc is the example):
   multi-env (`.env.local/.stage/.prod`), multi-cloud deploy (local + GCP today, Azure/AWS
   tomorrow), embeddable widget, tests + CI.
-- **`agents/nemo-support-agent/`** is the **dogfood instance** (the support agent on
+- **`agents/ask-genie/`** is the **dogfood instance** (the support agent on
   `nemorouter.ai`) — an INSTANCE of the same runtime, not a duplicate. It uses the
   **existing Nemo Supabase** isolated in a dedicated **`nemo_amp_db`** schema (Rule #12:
   never the `public` schema). `SUPABASE_SCHEMA` selects it; no code change.
@@ -86,7 +86,7 @@ This repo is **public on GitHub, MIT-licensed** — sibling tier to `nemorouter/
 
 The implementation of the gateway routes (`/v1/agents/*`, `/v1/mcp/*`) lives in `nemo-router-mono-repo` (public selected dirs). The tool credential vault and pricing tables live in `super-admin-dashboard` (private). The boundary is documented in `references/open-source-boundary.md` — read it before opening a PR that crosses repos.
 
-**First customer of the marketplace is us** — the Nemo Support Agent on `nemorouter.ai/support`, `/docs/*`, `/pricing`, and inside the dashboard. Built from this repo, against the live Nemo Router gateway, with no special-case code. Spelled out in `references/nemo-support-agent-dogfood.md`. If it breaks for us, we hear about it before any customer does.
+**First customer of the marketplace is us** — the Ask Genie Agent on `nemorouter.ai/support`, `/docs/*`, `/pricing`, and inside the dashboard. Built from this repo, against the live Nemo Router gateway, with no special-case code. Spelled out in `references/ask-genie-dogfood.md`. If it breaks for us, we hear about it before any customer does.
 
 ## What lives where
 
@@ -139,7 +139,7 @@ Load `amp-architecture` BEFORE any other `amp-*` skill, when:
 - `references/constraint-checklist.md` — the three interpretations of "no new APIs," what each one buys/loses, and the chosen reading
 - `references/data-flow-diagram.md` — request-path diagram for one chat turn end-to-end (widget → gateway → vault → tool → ledger → trace → response)
 - `references/open-source-boundary.md` — public/private map across the Nemo ecosystem; what changes can land here vs. require a PR in a private repo
-- `references/nemo-support-agent-dogfood.md` — the first deployment: Nemo Support Agent on nemorouter.ai, built end-to-end from this repo
+- `references/ask-genie-dogfood.md` — the first deployment: Ask Genie Agent on nemorouter.ai, built end-to-end from this repo
 
 ## Scripts in this skill
 
