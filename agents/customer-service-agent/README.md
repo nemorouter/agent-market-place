@@ -58,8 +58,9 @@ npm install
 - Copy the **Project URL**, **anon key**, and **service-role key** from
   **Settings → API**.
 
-> Vector dimension must match your embedding model. `text-embedding-3-small` = `1536`
-> (the migration default). Change the model → change `vector(N)` in two places.
+> Vector dimension must match your embedding model. Nemo Router serves **Vertex AI
+> embeddings** — `text-embedding-005` = **768** (the migration default). Change the
+> model → change `vector(N)` in `supabase/migration.sql` (two places).
 
 ### 3. Create the Nemo virtual key (the agent's identity + safety net)
 - In the **Nemo dashboard**, create a virtual key named **"Acme Support Agent"**.

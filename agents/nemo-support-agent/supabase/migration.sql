@@ -10,13 +10,13 @@
 create extension if not exists vector;
 create schema if not exists nemo_amp_db;
 
--- ── Knowledge base chunks (vector(1536) = text-embedding-3-small) ─────────────
+-- ── Knowledge base chunks (vector(768) = text-embedding-005) ─────────────
 create table if not exists nemo_amp_db.kb_chunks (
   id         uuid primary key default gen_random_uuid(),
   title      text not null,
   url        text,
   content    text not null,
-  embedding  vector(1536) not null,
+  embedding  vector(768) not null,
   created_at timestamptz not null default now()
 );
 create index if not exists kb_chunks_embedding_idx
@@ -34,7 +34,7 @@ create index if not exists chat_messages_session_idx
   on nemo_amp_db.chat_messages (session_id, created_at);
 
 -- ── Cosine-similarity search RPC (resolved via SUPABASE_SCHEMA=nemo_amp_db) ──
-create or replace function nemo_amp_db.match_chunks(query_embedding vector(1536), match_count int)
+create or replace function nemo_amp_db.match_chunks(query_embedding vector(768), match_count int)
 returns table (id uuid, title text, url text, content text, similarity float)
 language sql stable as $$
   select id, title, url, content, 1 - (embedding <=> query_embedding) as similarity

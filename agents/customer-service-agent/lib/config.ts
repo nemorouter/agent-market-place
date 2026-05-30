@@ -48,7 +48,7 @@ export function loadConfig(): AgentConfig {
       'You are a helpful support assistant. Answer ONLY from the provided context. ' +
         'If the context does not cover the question, say so plainly and offer to escalate. Keep answers concise.',
     model: env.MODEL || 'gemini-2.5-flash-lite',
-    embeddingModel: env.EMBEDDING_MODEL || 'text-embedding-3-small',
+    embeddingModel: env.EMBEDDING_MODEL || 'text-embedding-005',
     topK: num(env.TOP_K, 6),
     maxSteps: num(env.MAX_STEPS, 4),
     guardrails: list(env.GUARDRAILS),

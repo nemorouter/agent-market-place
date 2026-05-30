@@ -3,8 +3,8 @@
 --
 -- Creates the pgvector knowledge base + optional chat history, with RLS ON by default.
 --
--- IMPORTANT: vector(1536) must match your EMBEDDING_MODEL's output dimension.
---   text-embedding-3-small = 1536 · text-embedding-3-large = 3072.
+-- IMPORTANT: vector(768) must match your EMBEDDING_MODEL's output dimension.
+--   text-embedding-005 = 768 (Vertex default). Match your model's output dimension.
 -- If you change the model, change the number in BOTH places below.
 
 create extension if not exists vector;
@@ -15,7 +15,7 @@ create table if not exists public.kb_chunks (
   title      text not null,
   url        text,
   content    text not null,
-  embedding  vector(1536) not null,
+  embedding  vector(768) not null,
   created_at timestamptz not null default now()
 );
 
@@ -33,7 +33,7 @@ create table if not exists public.chat_messages (
 create index if not exists chat_messages_session_idx on public.chat_messages (session_id, created_at);
 
 -- ── Cosine-similarity search RPC used by lib/retrieval.ts ────────────────────
-create or replace function public.match_chunks(query_embedding vector(1536), match_count int)
+create or replace function public.match_chunks(query_embedding vector(768), match_count int)
 returns table (id uuid, title text, url text, content text, similarity float)
 language sql stable as $$
   select id, title, url, content, 1 - (embedding <=> query_embedding) as similarity
