@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/verify-cs-agent.sh\"",
+            "timeout": 180,
+            "statusMessage": "Verifying customer-service-agent (typecheck + tests)…"
+          }
+        ]
+      }
+    ]
+  }
+}
