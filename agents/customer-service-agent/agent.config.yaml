@@ -1,8 +1,10 @@
 # agent.config.yaml — human-readable manifest for THIS agent (example: Acme Inc).
 #
 # This file documents the agent; the runtime reads the matching values from env
-# vars (see .env.example). A Phase-2 admin UI will let you edit these and store
-# them in your own Supabase instead of env.
+# vars (see .env.example). The /admin dashboard now lets you edit the presentation
+# + behavior fields below (name, system_prompt, model, suggestions, quick_links,
+# contact methods) and stores them in your own Supabase `agent_config` row, which
+# overlays these env defaults at runtime — NO redeploy. Gated by ADMIN_TOKEN.
 
 id: acme-support
 name: Acme Support
@@ -23,8 +25,45 @@ system_prompt: |
 top_k: 6
 max_steps: 4
 
+# Widget presentation — editable from /admin (stored in Supabase, overlays env).
+# Suggestion chips (empty state), quick links (expanded rail), and contact methods
+# (phone / email / support — phone → tel:, email → mailto:). Defaults shown.
+suggestions:
+  - How does the platform fee work?
+  - Which models are live today?
+  - Is it OpenAI-compatible?
+  - How is this different from OpenRouter?
+quick_links:
+  - { label: Models, href: /models }
+  - { label: Pricing, href: /pricing }
+  - { label: Docs, href: /docs }
+  - { label: Playground, href: /playground }
+contact_methods:
+  - { type: phone, label: Call sales,    value: "+1 (555) 010-2030" }
+  - { type: email, label: Email support, value: support@acme.com }
+  - { type: url,   label: Contact us,    value: /contact }
+
 # Optional: Nemo guardrail ids to apply per-request, on top of the key's defaults.
 guardrails: []
+
+# Personalization (OPTIONAL) — greet signed-in visitors by name, show their own
+# account links, and scope docs to their plan. Pluggable: pick a mode + a few env
+# vars, no code. Resolved SERVER-SIDE from the request (cookie / proxy header /
+# introspection) — the browser can never spoof who it is. See lib/identity.ts.
+# Runtime reads the matching IDENTITY_* env vars (see .env.local.example).
+identity:
+  mode: none            # none | jwt | header | introspect | custom
+  greet: true           # "Hello Guru" on the first reply when signed in
+  # jwt mode example:
+  #   mode: jwt
+  #   cookie: session
+  #   jwt_secret_env: IDENTITY_JWT_SECRET
+  #   claims: { name: name, id: sub, email: email, attributes: [org, plan] }
+  # introspect mode example (works with ANY auth stack you already have):
+  #   mode: introspect
+  #   introspect_url: https://acme.com/api/me
+  links: []             # e.g. [{ label: "Your dashboard", url: "https://acme.com/app/{org}" }]
+  doc_audience_attr: ~  # e.g. "plan" → docs tagged {public}|{pro} for a pro user
 
 # What the agent knows (read by /api/ingest):
 knowledge:

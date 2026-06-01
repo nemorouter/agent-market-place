@@ -119,6 +119,82 @@ Same fork, **their own** Supabase project, **their own** `sk-nemo` key, their ow
 `ALLOWED_ORIGINS`. Nothing is shared except Nemo Router. To run fully outside Nemo,
 point `NEMO_BASE_URL` at a self-hosted Nemo gateway.
 
+## Configure from the dashboard — `/admin` (no redeploy)
+Open **`/admin`**, enter your `ADMIN_TOKEN` (the same one that gates re-index), and
+edit the agent's **name, system prompt, model, suggestion chips, quick links, and
+contact methods (phone / email / support)** in a UI. Save writes a single
+`agent_config` row to **your own Supabase**; the widget reads it from
+`GET /api/config` on open. The token lives in `sessionStorage` only (cleared on tab
+close — mirrors the playground-key model), and is never read during render.
+
+Resolution order is **built-in defaults → env vars → your Supabase row** (last wins).
+Anything you leave blank falls back to the env/`agent.config.yaml` defaults, so an
+un-configured fork looks exactly like before. Dangerous hrefs (`javascript:`,
+`data:`) are dropped server-side; phone numbers become `tel:`, emails `mailto:`.
+The system prompt + model edits flow straight into `/api/chat`. All in
+[`lib/settings.ts`](lib/settings.ts) + [`app/admin/page.tsx`](app/admin/page.tsx);
+the table ships in [`supabase/migration.sql`](supabase/migration.sql).
+
+## Personalization — "Hello Guru" for signed-in visitors
+Off by default (anonymous). Turn it on with **env vars, not code** — so 1000 forks
+each enable it the same way. The widget calls a same-origin `GET /api/session`,
+which resolves the visitor **server-side** (the browser can never spoof who it is)
+and returns only `{ authenticated, displayName, links }`. When signed in, the hero
+greets by name, the rail shows the visitor's own account links, and `/api/chat`
+injects a persona block (greeting + account links + plan steer) and scopes docs to
+their entitlements. All in [`lib/identity.ts`](lib/identity.ts).
+
+Pick **one** `IDENTITY_MODE` — no code change for the first four:
+
+| Mode | When to use | Set |
+|---|---|---|
+| `none` | anonymous (default) | — |
+| `jwt` | you set a signed JWT cookie | `IDENTITY_JWT_SECRET`, `IDENTITY_COOKIE`, `IDENTITY_CLAIM_*` |
+| `header` | an auth proxy fronts you (oauth2-proxy, ALB OIDC, Cloudflare Access) | `IDENTITY_HEADER`, `IDENTITY_HEADER_ATTRIBUTES` |
+| `introspect` | you already have a "who am I" endpoint — works with **any** auth stack | `IDENTITY_INTROSPECT_URL` |
+| `custom` | exotic auth | write `lib/identity.custom.ts` exporting `resolve(req, cfg)` |
+
+```bash
+# Example: JWT cookie, greet by name, show their dashboard, scope docs by plan
+IDENTITY_MODE=jwt
+IDENTITY_JWT_SECRET=your-hs256-secret
+IDENTITY_CLAIM_ATTRIBUTES=org,plan
+IDENTITY_LINKS=[{"label":"Your dashboard","url":"https://acme.com/app/{org}"}]
+IDENTITY_DOC_AUDIENCE_ATTR=plan          # needs the audiences column (supabase/migration.sql)
+```
+
+**Where login comes from — not Nemo.** Nemo Router only ever sees the server-side
+`sk-nemo` key; it has **no idea** whether a visitor is logged in, and it shouldn't.
+"Logged in" is *your* app's signal, read from *your* cookie / header / session
+endpoint. That's why this layer is vendor-neutral — nothing here is Nemo-specific.
+
+**Embedding the widget on your site:**
+- **Same-site** (deploy at `support.acme.com`, cookie scoped to `.acme.com`) → the
+  widget reads your login cookie server-side. **Nothing to wire** — pure cookie.
+- **Cross-origin** (agent on a different domain) → browsers block third-party
+  cookies, so hand the widget a signed token (a JWT your app mints for the user,
+  `IDENTITY_MODE=jwt`). Dependency-free, two ways:
+  ```html
+  <script src=".../widget.js" data-identity-token="<jwt>"></script>
+  ```
+  ```js
+  window.AskGuru.identify('<jwt>')   // SPAs: call after login; '' to sign out
+  ```
+  The token is forwarded into the iframe and verified **server-side** — same as the
+  Intercom/Zendesk identity-verification pattern. It never touches Nemo.
+
+**Tagging docs by tier:** re-run `supabase/migration.sql` for the additive
+`audiences` column (existing rows default to `{public}` — prior behavior unchanged),
+then add frontmatter to the docs you want gated:
+```md
+---
+audiences: [pro, enterprise]
+---
+# Advanced SSO setup
+```
+Untagged docs stay public. A `pro` user sees `{public}` + `{pro}` chunks; anonymous
+visitors see only `{public}`.
+
 ## Develop & verify
 ```bash
 npm run build:widget   # bundle widget/embed.ts → public/widget.js (also runs on build)
@@ -136,7 +212,10 @@ CI runs typecheck + tests + build on every push/PR (`.github/workflows/ci.yml`).
 ## File map
 ```
 app/page.tsx          themable chat tester (frontend extension point)
-app/api/chat/route.ts public chat: Layers 1-3 → retrieve → stream from Nemo
+app/admin/page.tsx    operator config dashboard (token-gated; edits all settings)
+app/api/chat/route.ts public chat: Layers 1-3 → identity → settings → retrieve → stream from Nemo
+app/api/session/route.ts who-is-the-visitor (browser-safe identity for the greeting)
+app/api/config/route.ts read (public projection) / write (admin) the editable settings
 app/api/ingest/route.ts admin-gated re-index
 Dockerfile            Next standalone image (Cloud Run / ACA / any container host)
 scripts/deploy.sh     one-command deploy: local | gcp (today) | azure/aws (tomorrow)
@@ -144,11 +223,13 @@ scripts/ingest.sh     re-index against local or a deployed URL
 scripts/env-to-yaml.py  .env.<env> → Cloud Run --env-vars-file (comma-safe)
 .env.local/stage/prod.example  per-environment config (copy → fill ★ → deploy)
 lib/nemo.ts           the ONLY model client — guardrails/routing/credits live here
-lib/retrieval.ts      pgvector search (extend: filters/hybrid)
+lib/retrieval.ts      pgvector search (audience-scoped when signed in; extend: filters/hybrid)
+lib/identity.ts       pluggable login layer (none|jwt|header|introspect|custom)
+lib/settings.ts       operator-editable settings (env defaults ← Supabase overlay)
 lib/ingest.ts         docs + website → chunks → embeddings → Supabase
 lib/security.ts       Layers 1-3
 lib/config.ts         typed config from env
-supabase/migration.sql  pgvector KB + RLS (run in YOUR Supabase)
+supabase/migration.sql  pgvector KB + agent_config + RLS (run in YOUR Supabase)
 widget/embed.ts       one-tag embeddable widget
 agent.config.yaml     human-readable manifest (maps to env)
 ```

@@ -32,19 +32,48 @@ create table if not exists public.chat_messages (
 );
 create index if not exists chat_messages_session_idx on public.chat_messages (session_id, created_at);
 
+-- ── Optional: per-audience doc scoping (signed-in personalization) ───────────
+-- Tag chunks with the audiences allowed to see them, e.g. {public} or {public,pro}.
+-- Anonymous visitors get the {public} default; signed-in users get docs whose
+-- audiences overlap their entitlements (resolved in lib/identity.ts). Additive +
+-- idempotent — existing rows default to {public} so prior behavior is unchanged.
+alter table public.kb_chunks
+  add column if not exists audiences text[] not null default '{public}';
+
 -- ── Cosine-similarity search RPC used by lib/retrieval.ts ────────────────────
-create or replace function public.match_chunks(query_embedding vector(768), match_count int)
+-- match_audiences IS NULL → unscoped (anonymous). Non-null → require overlap.
+-- Drop the legacy 2-arg signature first: the new arg has a DEFAULT, so keeping
+-- both would make a 2-arg call ambiguous. Safe + idempotent.
+drop function if exists public.match_chunks(vector, int);
+create or replace function public.match_chunks(
+  query_embedding vector(768),
+  match_count int,
+  match_audiences text[] default null
+)
 returns table (id uuid, title text, url text, content text, similarity float)
 language sql stable as $$
   select id, title, url, content, 1 - (embedding <=> query_embedding) as similarity
   from public.kb_chunks
+  where match_audiences is null or audiences && match_audiences
   order by embedding <=> query_embedding
   limit match_count;
 $$;
+
+-- ── Operator-editable agent settings (the /admin dashboard writes here) ──────
+-- One row per agent (keyed by AGENT_ID). `settings` is the editable projection:
+-- agentName, systemPrompt, model, greet, suggestions[], quickLinks[], contactMethods[].
+-- lib/settings.ts overlays this row on top of the env/built-in defaults; a missing
+-- row (or missing table) just means "use the defaults". Additive + idempotent.
+create table if not exists public.agent_config (
+  agent_id   text primary key,
+  settings   jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
 
 -- ── RLS: lock everything down ────────────────────────────────────────────────
 -- The app uses the service-role key server-side (bypasses RLS); the public anon
 -- key gets NO direct table access. All reads/writes go through this app's /api/*.
 alter table public.kb_chunks     enable row level security;
 alter table public.chat_messages enable row level security;
+alter table public.agent_config  enable row level security;
 -- (Intentionally no permissive policies — anon cannot select/insert directly.)

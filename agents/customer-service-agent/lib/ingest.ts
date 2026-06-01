@@ -12,6 +12,10 @@ export interface SourceDoc {
   title: string;
   url: string | null;
   content: string;
+  /** Optional entitlement tags — which signed-in tiers may see this doc, e.g.
+   *  ["pro","enterprise"]. Omitted → the chunk falls back to the DB default
+   *  {public} (visible to everyone). See lib/identity.ts + supabase/migration.sql. */
+  audiences?: string[];
 }
 
 const CHUNK_CHARS = 1200;
@@ -37,6 +41,24 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
+/** Pull `audiences` out of leading frontmatter (--- ... ---). Accepts
+ *  `audiences: [pro, enterprise]`, `audiences: pro, enterprise`, or `audiences: pro`.
+ *  Returns undefined when absent → the chunk stays public. Dependency-free. */
+export function parseAudiences(raw: string): string[] | undefined {
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
+  if (!fm) return undefined;
+  const line = fm[1].split('\n').find((l) => /^\s*audiences\s*:/.test(l));
+  if (!line) return undefined;
+  const items = line
+    .slice(line.indexOf(':') + 1)
+    .trim()
+    .replace(/^\[|\]$/g, '')
+    .split(',')
+    .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+  return items.length ? items : undefined;
+}
+
 /** Read every .md/.mdx file under a docs directory (recursively). */
 export async function readDocsDir(dir: string, baseUrl?: string): Promise<SourceDoc[]> {
   const docs: SourceDoc[] = [];
@@ -56,7 +78,7 @@ export async function readDocsDir(dir: string, baseUrl?: string): Promise<Source
         const rel = path.relative(dir, full).replace(/\.(md|mdx)$/i, '');
         const title = (raw.match(/^#\s+(.+)$/m)?.[1] || rel).trim();
         const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${rel}` : null;
-        docs.push({ title, url, content: stripMarkdown(raw) });
+        docs.push({ title, url, content: stripMarkdown(raw), audiences: parseAudiences(raw) });
       }
     }
   }
@@ -118,15 +140,27 @@ export async function ingest(opts: { docs: SourceDoc[]; embeddingModel: string; 
   // Full re-index: clear the table, then insert fresh chunks.
   await db.from('kb_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-  const rows: Array<{ title: string; url: string | null; content: string }> = [];
-  for (const d of opts.docs) for (const c of chunk(d.content)) rows.push({ title: d.title, url: d.url, content: c });
+  const rows: Array<{ title: string; url: string | null; content: string; audiences?: string[] }> = [];
+  for (const d of opts.docs)
+    for (const c of chunk(d.content)) rows.push({ title: d.title, url: d.url, content: c, audiences: d.audiences });
 
   const batch = opts.batchSize ?? 64;
   let inserted = 0;
   for (let i = 0; i < rows.length; i += batch) {
     const slice = rows.slice(i, i + batch);
     const vectors = await embed(opts.embeddingModel, slice.map((r) => r.content));
-    const payload = slice.map((r, j) => ({ ...r, embedding: vectors[j] as unknown as string }));
+    const payload = slice.map((r, j) => {
+      const row: Record<string, unknown> = {
+        title: r.title,
+        url: r.url,
+        content: r.content,
+        embedding: vectors[j] as unknown as string,
+      };
+      // Only write the column when a doc declared audiences — so installs that
+      // haven't run the (optional) migration keep inserting against the DB default.
+      if (r.audiences && r.audiences.length) row.audiences = r.audiences;
+      return row;
+    });
     const { error } = await db.from('kb_chunks').insert(payload);
     if (error) throw new Error(`ingest insert failed: ${error.message}`);
     inserted += slice.length;
