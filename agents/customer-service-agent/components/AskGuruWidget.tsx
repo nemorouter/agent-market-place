@@ -335,6 +335,8 @@ export function AskGuruWidget({
   const suggestions = config.suggestions.length ? config.suggestions : [...SUGGESTIONS];
   const quickLinks = config.quickLinks.length ? config.quickLinks : FALLBACK_QUICK_LINKS;
   const contactMethods = config.contactMethods;
+  // Header title reflects the operator-configured agent name once /api/config loads.
+  const agentTitle = config.agentName || 'Ask AI Guru about Nemo Router';
 
   // Feature-detect voice support once mounted (never read `window` in render).
   useEffect(() => {
@@ -804,7 +806,7 @@ export function AskGuruWidget({
             <div className="flex items-center gap-2.5">
               <Sparkles className="h-[18px] w-[18px] text-[var(--text-primary)]" strokeWidth={1.5} aria-hidden="true" />
               <div className="leading-tight">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">Ask AI Guru about Nemo Router</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{agentTitle}</p>
                 <p className="text-[11px] text-[var(--text-muted)]">Answered live by our own gateway</p>
               </div>
             </div>
