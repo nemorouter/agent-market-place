@@ -7,9 +7,11 @@
 // server-side. We surface its errors (guardrail_blocked / insufficient_credits /
 // rate_limited) back to the widget untouched.
 import { loadConfig } from '@/lib/config';
+import { loadSettings } from '@/lib/settings';
 import { retrieve } from '@/lib/retrieval';
 import { chatStream, NemoError, type ChatMessage } from '@/lib/nemo';
 import { originAllowed, rateLimit, verifyCaptcha, clientIp, captchaTriggerCount } from '@/lib/security';
+import { resolveIdentity, buildPersona } from '@/lib/identity';
 
 export const runtime = 'nodejs';
 
@@ -58,26 +60,39 @@ export async function POST(req: Request): Promise<Response> {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const question = typeof lastUser?.content === 'string' ? lastUser.content : '';
 
+  // Pluggable login layer: resolve the visitor SERVER-SIDE from the request
+  // (cookie / proxy header / introspection). Anonymous when IDENTITY_MODE=none
+  // or on any failure — personalization never breaks the chat path. We never
+  // trust an identity the browser puts in the body (Rule #26).
+  const identity = await resolveIdentity(req, cfg.identity);
+
+  // Operator-editable settings (system prompt + model) overlaid from the dashboard;
+  // degrades to env defaults on any Supabase failure (chat must never break).
+  const settings = await loadSettings(cfg);
+
   try {
     // Retrieve from the customer's OWN knowledge base. This calls Nemo /v1/embeddings,
     // so it must live INSIDE the try — a Nemo error here (bad key, 402, guardrail) must
     // surface as a clean JSON error, not an unhandled 500.
+    // Signed-in users get docs scoped to their entitlements (e.g. ["public","pro"]).
     let context = '';
     let citations: Array<{ title: string; url: string | null }> = [];
     if (question) {
-      const chunks = await retrieve(question, cfg.embeddingModel, cfg.topK);
+      const chunks = await retrieve(question, cfg.embeddingModel, cfg.topK, identity.docAudiences);
       context = chunks.map((c, i) => `[${i + 1}] ${c.title}\n${c.content}`).join('\n\n');
       citations = chunks.map((c) => ({ title: c.title, url: c.url }));
     }
 
     const system: ChatMessage = {
       role: 'system',
-      content: `${cfg.systemPrompt}\n\nContext:\n${context || '(no relevant context found)'}`,
+      content: `${settings.systemPrompt}${buildPersona(identity, cfg.identity)}\n\nContext:\n${
+        context || '(no relevant context found)'
+      }`,
     };
 
     // Nemo applies guardrails + routing/fallback + credit reserve+settle here.
     const upstream = await chatStream({
-      model: cfg.model,
+      model: settings.model,
       messages: [system, ...messages],
       guardrails: cfg.guardrails,
       sessionId: session,
