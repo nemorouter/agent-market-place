@@ -9,9 +9,10 @@
 //
 // The session secret + allowlist live in env. No plaintext password anywhere.
 
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomInt } from 'node:crypto';
 
 export const ADMIN_COOKIE = 'amp_admin_session';
+export const OTP_COOKIE = 'amp_admin_otp';
 
 function sessionSecret(): string | null {
   return process.env.ADMIN_SESSION_SECRET || null;
@@ -102,4 +103,59 @@ export function sessionCookie(token: string, ttlSec = 60 * 60 * 12): string {
 /** A cookie string that clears the session (logout). */
 export function clearCookie(): string {
   return `${ADMIN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
+// ── Stateless email OTP (SendGrid) ──────────────────────────────────────────────
+// No DB, no Supabase: the "stored hash" is hmac(secret, email|code) carried inside a
+// SIGNED HttpOnly challenge cookie. Without ADMIN_SESSION_SECRET an attacker holding
+// the cookie cannot brute-force the 6-digit code (the hash is keyed by the secret).
+
+/** A cryptographically-random 6-digit code. */
+export function generateCode(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, '0');
+}
+
+/** Mint a signed challenge binding (email, hash(code), exp). null if no secret. */
+export function issueChallenge(email: string, code: string, ttlSec = 600): string | null {
+  const secret = sessionSecret();
+  if (!secret) return null;
+  const e = email.trim().toLowerCase();
+  const ch = createHmac('sha256', secret).update(`${e}|${code}`).digest('hex');
+  const payload = b64url(JSON.stringify({ email: e, ch, exp: Math.floor(Date.now() / 1000) + ttlSec }));
+  const sig = b64url(createHmac('sha256', secret).update(payload).digest());
+  return `${payload}.${sig}`;
+}
+
+/** Verify a submitted code against the challenge cookie. Constant-time on the hash. */
+export function verifyChallenge(token: string, email: string, code: string): boolean {
+  const secret = sessionSecret();
+  if (!secret || !token) return false;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const expected = b64url(createHmac('sha256', secret).update(payload).digest());
+  if (!safeEqual(expected, sig)) return false;
+  try {
+    const obj = JSON.parse(b64urlDecode(payload)) as { email?: unknown; ch?: unknown; exp?: unknown };
+    if (typeof obj.exp === 'number' && obj.exp * 1000 < Date.now()) return false;
+    const e = email.trim().toLowerCase();
+    if (obj.email !== e || typeof obj.ch !== 'string') return false;
+    const ch = createHmac('sha256', secret).update(`${e}|${code}`).digest('hex');
+    return safeEqual(obj.ch, ch);
+  } catch {
+    return false;
+  }
+}
+
+/** Read a named cookie from the request (exported for the OTP routes). */
+export function getCookie(req: Request, name: string): string | null {
+  return readCookie(req.headers.get('cookie'), name);
+}
+
+export function otpCookie(token: string, ttlSec = 600): string {
+  const secure = process.env.NODE_ENV === 'production' ? ' Secure;' : '';
+  return `${OTP_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax;${secure} Max-Age=${ttlSec}`;
+}
+
+export function clearOtpCookie(): string {
+  return `${OTP_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }

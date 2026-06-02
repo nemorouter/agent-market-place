@@ -6,6 +6,9 @@ import {
   verifySession,
   isAuthorized,
   ADMIN_COOKIE,
+  generateCode,
+  issueChallenge,
+  verifyChallenge,
 } from '../lib/admin-auth';
 
 const SECRET = 'test-admin-session-secret-key';
@@ -67,6 +70,38 @@ describe('signed session', () => {
   it('returns null when no session secret is configured', () => {
     delete process.env.ADMIN_SESSION_SECRET;
     expect(issueSession('owner@acme.com')).toBeNull();
+  });
+});
+
+describe('OTP challenge (stateless, SendGrid — no Supabase)', () => {
+  it('generateCode returns a 6-digit string', () => {
+    for (let i = 0; i < 50; i++) expect(generateCode()).toMatch(/^\d{6}$/);
+  });
+  it('verifies the right code against its challenge', () => {
+    const ch = issueChallenge('owner@acme.com', '123456') as string;
+    expect(verifyChallenge(ch, 'owner@acme.com', '123456')).toBe(true);
+  });
+  it('rejects a wrong code', () => {
+    const ch = issueChallenge('owner@acme.com', '123456') as string;
+    expect(verifyChallenge(ch, 'owner@acme.com', '000000')).toBe(false);
+  });
+  it('rejects a code bound to a different email', () => {
+    const ch = issueChallenge('owner@acme.com', '123456') as string;
+    expect(verifyChallenge(ch, 'someone@acme.com', '123456')).toBe(false);
+  });
+  it('rejects a tampered challenge', () => {
+    const ch = issueChallenge('owner@acme.com', '123456') as string;
+    const [p] = ch.split('.');
+    expect(verifyChallenge(`${p}.bad`, 'owner@acme.com', '123456')).toBe(false);
+  });
+  it('rejects an expired challenge', () => {
+    const ch = issueChallenge('owner@acme.com', '123456', -1) as string;
+    expect(verifyChallenge(ch, 'owner@acme.com', '123456')).toBe(false);
+  });
+  it('cannot be verified under a different secret (cookie alone is useless)', () => {
+    const ch = issueChallenge('owner@acme.com', '123456') as string;
+    process.env.ADMIN_SESSION_SECRET = 'other';
+    expect(verifyChallenge(ch, 'owner@acme.com', '123456')).toBe(false);
   });
 });
 

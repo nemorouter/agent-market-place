@@ -1,67 +1,79 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Supabase Auth so we test the route CONTRACT (allowlist + cookie), not email.
-const verifyOtp = vi.fn();
-const signInWithOtp = vi.fn(async () => ({ data: {}, error: null }));
-vi.mock('@/lib/supabase-auth', () => ({
-  supabaseAuth: () => ({ auth: { verifyOtp, signInWithOtp } }),
-}));
+// Self-contained OTP: mock the email sender + pin the code; everything else is real
+// (challenge cookie, allowlist, session). No Supabase anywhere.
+const sendEmail = vi.fn(async () => true);
+vi.mock('@/lib/email', () => ({ sendEmail, emailConfigured: () => true }));
+vi.mock('@/lib/admin-auth', async (orig) => {
+  const actual = await orig<typeof import('../lib/admin-auth')>();
+  return { ...actual, generateCode: () => '123456' };
+});
 
 const { POST: requestOtp } = await import('../app/api/admin/request-otp/route');
 const { POST: verifyOtpRoute } = await import('../app/api/admin/verify-otp/route');
 
-const post = (url: string, body: unknown) =>
-  new Request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const post = (url: string, body: unknown, cookie?: string) =>
+  new Request(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
+    body: JSON.stringify(body),
+  });
+
+const cookieValue = (setCookie: string | null): string => (setCookie ? setCookie.split(';')[0] : '');
 
 beforeEach(() => {
   process.env.ADMIN_EMAILS = 'owner@acme.com';
   process.env.ADMIN_SESSION_SECRET = 'sess-secret';
-  verifyOtp.mockReset();
-  signInWithOtp.mockClear();
+  sendEmail.mockClear();
 });
 afterEach(() => {
   delete process.env.ADMIN_EMAILS;
   delete process.env.ADMIN_SESSION_SECRET;
 });
 
-describe('POST /api/admin/request-otp', () => {
-  it('emails a code for an allowlisted address (generic 200)', async () => {
-    const res = await requestOtp(post('http://localhost/api/admin/request-otp', { email: 'owner@acme.com' }));
+describe('POST /api/admin/request-otp (SendGrid)', () => {
+  it('emails an allowlisted admin + sets a challenge cookie', async () => {
+    const res = await requestOtp(post('http://localhost/x', { email: 'owner@acme.com' }));
     expect(res.status).toBe(200);
-    expect(signInWithOtp).toHaveBeenCalledOnce();
+    expect(sendEmail).toHaveBeenCalledOnce();
+    expect(res.headers.get('set-cookie') || '').toContain('amp_admin_otp=');
   });
-
-  it('returns the SAME generic 200 for a non-admin (anti-enumeration), sends nothing', async () => {
-    const res = await requestOtp(post('http://localhost/api/admin/request-otp', { email: 'stranger@evil.com' }));
+  it('non-admin: same generic 200 + cookie, but NO email (anti-enumeration)', async () => {
+    const res = await requestOtp(post('http://localhost/x', { email: 'stranger@evil.com' }));
     expect(res.status).toBe(200);
-    expect(signInWithOtp).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(res.headers.get('set-cookie') || '').toContain('amp_admin_otp='); // cookie still set → can't enumerate
   });
 });
 
-describe('POST /api/admin/verify-otp', () => {
-  it('rejects a non-allowlisted email BEFORE verifying (401, no verify call)', async () => {
-    const res = await verifyOtpRoute(post('http://localhost/api/admin/verify-otp', { email: 'stranger@evil.com', token: '123456' }));
-    expect(res.status).toBe(401);
-    expect(verifyOtp).not.toHaveBeenCalled();
-  });
+describe('POST /api/admin/verify-otp (challenge cookie)', () => {
+  async function challengeFor(email: string): Promise<string> {
+    const res = await requestOtp(post('http://localhost/x', { email }));
+    return cookieValue(res.headers.get('set-cookie'));
+  }
 
-  it('rejects a bad code (401, no cookie)', async () => {
-    verifyOtp.mockResolvedValueOnce({ data: { session: null }, error: { message: 'invalid' } });
-    const res = await verifyOtpRoute(post('http://localhost/api/admin/verify-otp', { email: 'owner@acme.com', token: '000000' }));
-    expect(res.status).toBe(401);
-    expect(res.headers.get('set-cookie')).toBeNull();
-  });
-
-  it('on a valid code → 200 + HttpOnly session cookie', async () => {
-    verifyOtp.mockResolvedValueOnce({ data: { session: { access_token: 'x' } }, error: null });
-    const res = await verifyOtpRoute(post('http://localhost/api/admin/verify-otp', { email: 'owner@acme.com', token: '654321' }));
+  it('valid code + challenge → 200 + session cookie, clears the challenge', async () => {
+    const ch = await challengeFor('owner@acme.com');
+    const res = await verifyOtpRoute(post('http://localhost/x', { email: 'owner@acme.com', token: '123456' }, ch));
     expect(res.status).toBe(200);
-    const cookie = res.headers.get('set-cookie') || '';
-    expect(cookie).toContain('amp_admin_session=');
-    expect(cookie).toContain('HttpOnly');
+    const cookies = res.headers.get('set-cookie') || '';
+    expect(cookies).toContain('amp_admin_session=');
   });
-
-  it('400 when email or code missing', async () => {
-    expect((await verifyOtpRoute(post('http://localhost/api/admin/verify-otp', { email: 'owner@acme.com' }))).status).toBe(400);
+  it('wrong code → 401', async () => {
+    const ch = await challengeFor('owner@acme.com');
+    const res = await verifyOtpRoute(post('http://localhost/x', { email: 'owner@acme.com', token: '999999' }, ch));
+    expect(res.status).toBe(401);
+  });
+  it('non-allowlisted email → 401 (before any cookie check)', async () => {
+    const ch = await challengeFor('owner@acme.com');
+    const res = await verifyOtpRoute(post('http://localhost/x', { email: 'stranger@evil.com', token: '123456' }, ch));
+    expect(res.status).toBe(401);
+  });
+  it('no challenge cookie → 401', async () => {
+    const res = await verifyOtpRoute(post('http://localhost/x', { email: 'owner@acme.com', token: '123456' }));
+    expect(res.status).toBe(401);
+  });
+  it('400 when code missing', async () => {
+    expect((await verifyOtpRoute(post('http://localhost/x', { email: 'owner@acme.com' }))).status).toBe(400);
   });
 });

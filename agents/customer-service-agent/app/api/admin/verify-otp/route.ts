@@ -1,20 +1,25 @@
-// app/api/admin/verify-otp/route.ts — complete the /admin OTP login.
+// app/api/admin/verify-otp/route.ts — complete the /admin OTP login (self-contained).
 //
-// POST { email, token } → verify the code with Supabase Auth, re-check the allowlist,
-// then mint our own signed session and set it as an HttpOnly cookie. From then on the
-// admin routes accept that cookie (lib/admin-auth isAuthorized).
-import { isAllowedEmail, issueSession, sessionCookie } from '@/lib/admin-auth';
-import { supabaseAuth } from '@/lib/supabase-auth';
+// POST { email, token } → verify the submitted code against the signed challenge
+// cookie + the allowlist, then mint our local signed session cookie. NO Supabase.
+import {
+  isAllowedEmail,
+  verifyChallenge,
+  issueSession,
+  sessionCookie,
+  clearOtpCookie,
+  getCookie,
+  OTP_COOKIE,
+} from '@/lib/admin-auth';
 import { rateLimit, clientIp } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function json(obj: unknown, status: number, extraHeaders: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
-  });
+function json(obj: unknown, status: number, cookies: string[] = []): Response {
+  const headers = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  for (const c of cookies) headers.append('Set-Cookie', c);
+  return new Response(JSON.stringify(obj), { status, headers });
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -31,17 +36,15 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: 'bad_request' }, 400);
   }
   if (!email || !code) return json({ error: 'bad_request' }, 400);
-  // Allowlist BEFORE trusting any verification (defense in depth).
   if (!isAllowedEmail(email)) return json({ error: 'unauthorized' }, 401);
 
-  try {
-    const { data, error } = await supabaseAuth().auth.verifyOtp({ email, token: code, type: 'email' });
-    if (error || !data?.session) return json({ error: 'invalid_code' }, 401);
-  } catch {
+  const challenge = getCookie(req, OTP_COOKIE);
+  if (!challenge || !verifyChallenge(challenge, email, code)) {
     return json({ error: 'invalid_code' }, 401);
   }
 
   const token = issueSession(email);
   if (!token) return json({ error: 'server_misconfigured', message: 'ADMIN_SESSION_SECRET not set.' }, 500);
-  return json({ ok: true, email }, 200, { 'Set-Cookie': sessionCookie(token) });
+  // Set the session, clear the one-time challenge.
+  return json({ ok: true, email }, 200, [sessionCookie(token), clearOtpCookie()]);
 }
