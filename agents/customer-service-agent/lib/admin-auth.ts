@@ -89,7 +89,10 @@ function readCookie(header: string | null, name: string): string | null {
  *  No token configured → the bearer path is closed (never an empty-bearer bypass). */
 export function isAuthorized(req: Request): boolean {
   const token = process.env.ADMIN_TOKEN;
-  if (token && req.headers.get('authorization') === `Bearer ${token}`) return true;
+  // Constant-time compare the full-power machine credential (safeEqual short-circuits
+  // only on length, never per-byte) so the bearer can't be recovered via timing.
+  const presented = req.headers.get('authorization') || '';
+  if (token && safeEqual(presented, `Bearer ${token}`)) return true;
   const cookie = readCookie(req.headers.get('cookie'), ADMIN_COOKIE);
   return cookie ? verifySession(cookie) !== null : false;
 }

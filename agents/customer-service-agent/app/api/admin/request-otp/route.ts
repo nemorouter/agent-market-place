@@ -6,7 +6,7 @@
 // (a non-admin just never receives a code), so a prober can't tell admins apart.
 import { isAllowedEmail, generateCode, issueChallenge, otpCookie } from '@/lib/admin-auth';
 import { sendEmail } from '@/lib/email';
-import { rateLimit, clientIp } from '@/lib/security';
+import { rateLimitAsync, clientIp } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,16 +22,19 @@ function json(obj: unknown, status: number, extra: Record<string, string> = {}):
 
 export async function POST(req: Request): Promise<Response> {
   const ip = clientIp(req.headers);
-  if (!rateLimit(`otp-req:${ip}`, 5, 60_000)) return json({ error: 'rate_limited' }, 429);
+  if (!(await rateLimitAsync(`otp-req-ip:${ip}`, 5, 60_000))) return json({ error: 'rate_limited' }, 429);
 
   let email = '';
   try {
     const body = (await req.json()) as { email?: unknown };
-    email = typeof body.email === 'string' ? body.email.trim() : '';
+    email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   } catch {
     return json({ error: 'bad_request' }, 400);
   }
   if (!email) return json(GENERIC, 200);
+  // Per-target-email cap (survives IP spoofing): bounds inbox-bombing / SendGrid-quota
+  // drain of a known admin. Still returns the generic 200 so it can't be used to enumerate.
+  if (!(await rateLimitAsync(`otp-req-email:${email}`, 8, 600_000))) return json(GENERIC, 200);
 
   const code = generateCode();
   const challenge = issueChallenge(email, code);

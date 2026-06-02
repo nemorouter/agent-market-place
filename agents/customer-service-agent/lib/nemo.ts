@@ -92,7 +92,7 @@ export interface ChatOptions {
  *  Returns the assistant text + any tool calls the model requested. */
 export async function chatComplete(
   opts: ChatOptions,
-): Promise<{ content: string; toolCalls: ToolCall[] }> {
+): Promise<{ content: string; toolCalls: ToolCall[]; costUsd: number }> {
   const res = await fetch(`${BASE}/v1/chat/completions`, {
     method: 'POST',
     headers: authHeaders(),
@@ -109,6 +109,9 @@ export async function chatComplete(
     }),
   });
   if (!res.ok) throw await toNemoError(res);
+  // For NON-streaming completions Nemo/LiteLLM DOES populate the cost header — capture
+  // it so tool-decision spend isn't invisible (Rule #4: Nemo computes, we only read).
+  const costUsd = Number(res.headers.get('x-litellm-response-cost')) || 0;
   const json = (await res.json()) as {
     choices?: Array<{
       message?: {
@@ -127,7 +130,7 @@ export async function chatComplete(
     }
     return { id: tc.id || `call_${i}`, name: tc.function?.name || '', arguments: args };
   });
-  return { content: typeof msg.content === 'string' ? msg.content : '', toolCalls };
+  return { content: typeof msg.content === 'string' ? msg.content : '', toolCalls, costUsd };
 }
 
 /** Streaming chat completion. Returns the raw SSE Response from Nemo so the route
@@ -141,6 +144,10 @@ export async function chatStream(opts: ChatOptions): Promise<Response> {
       model: opts.model,
       messages: opts.messages,
       stream: true,
+      // Ask for a terminal usage chunk: for STREAMED completions the cost is computed
+      // only after the stream ends, so it never appears on the response headers — the
+      // usage/cost rides in the final SSE chunk instead (Nemo owns the number; Rule #4).
+      stream_options: { include_usage: true },
       temperature: opts.temperature ?? 0.2,
       max_tokens: opts.maxTokens ?? 1024,
       // Nemo/LiteLLM read guardrails + metadata from the request body. We pass them
@@ -162,6 +169,12 @@ export async function embed(model: string, input: string[]): Promise<number[][]>
     body: JSON.stringify({ model, input }),
   });
   if (!res.ok) throw await toNemoError(res);
-  const json = (await res.json()) as { data: { embedding: number[] }[] };
-  return json.data.map((d) => d.embedding);
+  // Validate the envelope before mapping — a 200 with an unexpected/empty body (gateway
+  // hiccup, model envelope change) must surface as a typed error, not a raw TypeError.
+  const json = (await res.json().catch(() => null)) as { data?: unknown } | null;
+  const data = json?.data;
+  if (!Array.isArray(data) || !data.every((d) => d && Array.isArray((d as { embedding?: unknown }).embedding))) {
+    throw new NemoError(502, 'upstream_error', 'Embeddings response had an unexpected shape.', json);
+  }
+  return (data as { embedding: number[] }[]).map((d) => d.embedding);
 }

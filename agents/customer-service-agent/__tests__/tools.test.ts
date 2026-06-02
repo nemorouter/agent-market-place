@@ -33,7 +33,7 @@ describe('runToolLoop', () => {
     const chat = vi.fn(chatNoTools);
     const call = vi.fn(async () => ({ ok: true, result: 'x' }));
     const out = await runToolLoop({ messages: [], enabled: [], maxSteps: 3, chat, call });
-    expect(out).toEqual({ toolContext: '', ran: false });
+    expect(out).toEqual({ toolContext: '', ran: false, costUsd: 0 });
     expect(chat).not.toHaveBeenCalled();
   });
 
@@ -97,7 +97,7 @@ describe('runToolLoop', () => {
     });
     const call = vi.fn(async () => ({ ok: true, result: 'x' }));
     const out = await runToolLoop({ messages: [], enabled: [TOOL], maxSteps: 3, chat, call });
-    expect(out).toEqual({ toolContext: '', ran: false });
+    expect(out).toEqual({ toolContext: '', ran: false, costUsd: 0 });
   });
 
   it('respects maxSteps when the model keeps requesting tools', async () => {

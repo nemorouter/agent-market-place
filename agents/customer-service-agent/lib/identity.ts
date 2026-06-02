@@ -189,8 +189,11 @@ async function introspectAdapter(req: Request, cfg: IdentityConfig): Promise<Ide
   if (!cfg.introspectUrl) return ANON;
   // Forward the visitor's cookies to the fork's existing session endpoint.
   // That endpoint already knows how to answer "who is this?" for ANY auth stack.
+  // Identity is resolved inline before the LLM call, so a hung endpoint would pin the
+  // request — bound it. (introspectUrl is operator-set; the timeout caps the blast radius.)
   const res = await fetch(cfg.introspectUrl, {
     headers: { cookie: req.headers.get('cookie') ?? '', accept: 'application/json' },
+    signal: AbortSignal.timeout(Number(process.env.IDENTITY_INTROSPECT_TIMEOUT_MS) || 5_000),
   });
   if (!res.ok) return ANON;
   const data = (await res.json()) as Record<string, unknown>;

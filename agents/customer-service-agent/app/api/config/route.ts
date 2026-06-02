@@ -13,6 +13,7 @@
 import { loadConfig } from '@/lib/config';
 import { loadSettings, saveSettings, publicSettings, type AgentSettings } from '@/lib/settings';
 import { isAuthorized } from '@/lib/admin-auth';
+import { rateLimitAsync, clientIp } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // settings live in Supabase, per-request
@@ -25,6 +26,12 @@ function json(obj: unknown, status: number): Response {
 }
 
 export async function GET(req: Request): Promise<Response> {
+  // This route is unauthenticated (the widget reads it on open) and force-dynamic, so each
+  // hit is a Supabase round-trip. Rate-limit per IP so it can't be used as a cheap,
+  // keyless amplification vector against the agent's own DB (distributed when Upstash set).
+  if (!(await rateLimitAsync(`cfg:${clientIp(req.headers)}`, 60, 60_000))) {
+    return json({ error: 'rate_limited' }, 429);
+  }
   const settings = await loadSettings();
   // Admins get the full object to prefill the editor; everyone else the safe subset.
   return json(isAuthorized(req) ? settings : publicSettings(settings), 200);

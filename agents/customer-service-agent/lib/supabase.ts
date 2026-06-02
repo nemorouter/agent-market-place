@@ -15,22 +15,47 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 type AdminClient = SupabaseClient<any, any, any>;
 
 const url = process.env.SUPABASE_URL;
-// Prefer the service-role key (ingest/write). If absent, fall back to the ANON key:
-// retrieval works read-only via the SECURITY DEFINER match_chunks() RPC, so a PUBLIC
-// widget pointed at the shared Nemo Supabase can run WITHOUT a service-role key —
-// a compromise of this service can't reach other data (RLS denies; the RPC only reads
-// kb_chunks). Prod deploy sets ANON only.
-const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anonKey = process.env.SUPABASE_ANON_KEY;
 const schema = process.env.SUPABASE_SCHEMA || 'public';
 
-let cached: AdminClient | null = null;
+// Two clients, two trust levels:
+//   • supabaseAdmin()   — prefers the service-role key, falls back to ANON. Used for
+//     RETRIEVAL, which works read-only via the SECURITY DEFINER match_chunks() RPC even
+//     on an anon key, so a public widget can run without a service-role key (a compromise
+//     can't reach other data; RLS denies; the RPC only reads kb_chunks).
+//   • supabaseService() — REQUIRES the service-role key. Used for every WRITE/direct-table
+//     path (settings upsert, ingest). These genuinely bypass RLS, so an ANON-only deploy
+//     must fail LOUDLY here rather than emit confusing per-row RLS errors at runtime.
+const readKey = serviceKey || anonKey;
 
-export function supabaseAdmin(): AdminClient {
-  if (!url || !apiKey) {
-    throw new Error('SUPABASE_URL + (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY) must be set.');
-  }
+let cachedRead: AdminClient | null = null;
+let cachedService: AdminClient | null = null;
+
+function make(key: string): AdminClient {
   // `db.schema` makes .from()/.rpc() resolve within the configured schema. The schema
   // must be in the project's PostgREST "Exposed schemas" (the `nemo` schema already is).
-  if (!cached) cached = createClient(url, apiKey, { auth: { persistSession: false }, db: { schema } });
-  return cached;
+  return createClient(url as string, key, { auth: { persistSession: false }, db: { schema } });
+}
+
+/** Read/RPC client — service-role if present, else anon (retrieval-only path). */
+export function supabaseAdmin(): AdminClient {
+  if (!url || !readKey) {
+    throw new Error('SUPABASE_URL + (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY) must be set.');
+  }
+  if (!cachedRead) cachedRead = make(readKey);
+  return cachedRead;
+}
+
+/** Write client — requires the RLS-bypassing service-role key. Throws a clear error
+ *  on an anon-only deploy instead of failing silently on the first write. */
+export function supabaseService(): AdminClient {
+  if (!url || !serviceKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is required for this operation (settings save / ingest). ' +
+        'An anon-only deploy can serve chat but cannot write — set the service-role key.',
+    );
+  }
+  if (!cachedService) cachedService = make(serviceKey);
+  return cachedService;
 }

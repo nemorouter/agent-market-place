@@ -11,7 +11,7 @@ import {
   getCookie,
   OTP_COOKIE,
 } from '@/lib/admin-auth';
-import { rateLimit, clientIp } from '@/lib/security';
+import { rateLimitAsync, clientIp } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,18 +24,23 @@ function json(obj: unknown, status: number, cookies: string[] = []): Response {
 
 export async function POST(req: Request): Promise<Response> {
   const ip = clientIp(req.headers);
-  if (!rateLimit(`otp-verify:${ip}`, 10, 60_000)) return json({ error: 'rate_limited' }, 429);
+  // Per-IP throttle (distributed when Upstash is set) catches volume…
+  if (!(await rateLimitAsync(`otp-verify-ip:${ip}`, 10, 60_000))) return json({ error: 'rate_limited' }, 429);
 
   let email = '';
   let code = '';
   try {
     const body = (await req.json()) as { email?: unknown; token?: unknown; code?: unknown };
-    email = typeof body.email === 'string' ? body.email.trim() : '';
+    email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     code = typeof body.token === 'string' ? body.token.trim() : typeof body.code === 'string' ? body.code.trim() : '';
   } catch {
     return json({ error: 'bad_request' }, 400);
   }
   if (!email || !code) return json({ error: 'bad_request' }, 400);
+  // …and a PER-EMAIL cap that survives X-Forwarded-For rotation: at most 10 code
+  // guesses per 10-min challenge window, so the 6-digit space (10^6) can never be
+  // brute-forced within a challenge's life regardless of how many IPs an attacker spoofs.
+  if (!(await rateLimitAsync(`otp-verify-email:${email}`, 10, 600_000))) return json({ error: 'rate_limited' }, 429);
   if (!isAllowedEmail(email)) return json({ error: 'unauthorized' }, 401);
 
   const challenge = getCookie(req, OTP_COOKIE);
