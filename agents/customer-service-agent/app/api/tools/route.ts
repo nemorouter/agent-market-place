@@ -6,6 +6,7 @@
 // fetched server-side with the agent key, never exposing the key to the browser.
 // Degrades to an empty list if the gateway is unreachable (UI shows "none").
 import { listTools } from '@/lib/tools';
+import { isAuthorized } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,13 +18,8 @@ function json(obj: unknown, status: number): Response {
   });
 }
 
-function isAdmin(req: Request): boolean {
-  const token = process.env.ADMIN_TOKEN;
-  return Boolean(token) && req.headers.get('authorization') === `Bearer ${token}`;
-}
-
 export async function GET(req: Request): Promise<Response> {
-  if (!isAdmin(req)) return json({ error: 'unauthorized' }, 401);
+  if (!isAuthorized(req)) return json({ error: 'unauthorized' }, 401);
   const tools = await listTools();
   return json({ object: 'list', data: tools }, 200);
 }

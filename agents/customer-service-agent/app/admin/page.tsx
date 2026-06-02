@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * /admin — the operator config dashboard.
@@ -64,8 +64,9 @@ const btnGhost =
   'inline-flex items-center justify-center rounded-lg border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]';
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenInput, setTokenInput] = useState('');
+  const [authed, setAuthed] = useState(false);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const tokenRef = useRef<string | null>(null); // set only for the token-login path
   const [settings, setSettings] = useState<AgentSettings>(EMPTY);
   const [tools, setTools] = useState<ToolSpec[]>([]);
   const [vault, setVault] = useState<{ vaultConfigured: boolean; toolIds: string[] }>({ vaultConfigured: false, toolIds: [] });
@@ -73,22 +74,36 @@ export default function AdminPage() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  // Login UI state
+  const [loginMode, setLoginMode] = useState<'otp' | 'token'>('otp');
+  const [email, setEmail] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [tokenInput, setTokenInput] = useState('');
 
-  // Restore a previously-entered token after mount (never during render — Rule #24).
-  useEffect(() => {
-    const t = sessionStorage.getItem(TOKEN_KEY);
-    if (t) setToken(t);
+  // authFetch adds the bearer ONLY for token-login; OTP rides the HttpOnly cookie
+  // (sent automatically same-origin). tokenRef keeps it current without dep churn.
+  const authFetch = useCallback((url: string, opts: RequestInit = {}) => {
+    const headers = new Headers(opts.headers || {});
+    headers.set('accept', 'application/json');
+    if (tokenRef.current) headers.set('authorization', `Bearer ${tokenRef.current}`);
+    return fetch(url, { ...opts, headers });
   }, []);
 
-  const load = useCallback(async (tok: string) => {
+  const load = useCallback(async () => {
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch('/api/config', { headers: { authorization: `Bearer ${tok}`, accept: 'application/json' } });
+      const res = await authFetch('/api/config');
       if (!res.ok) {
-        setNote({ kind: 'err', text: res.status === 401 ? 'Invalid admin token.' : `Load failed (${res.status}).` });
-        setToken(null);
-        sessionStorage.removeItem(TOKEN_KEY);
+        if (res.status === 401) {
+          setAuthed(false);
+          tokenRef.current = null;
+          sessionStorage.removeItem(TOKEN_KEY);
+          setNote({ kind: 'err', text: 'Session expired — sign in again.' });
+        } else {
+          setNote({ kind: 'err', text: `Load failed (${res.status}).` });
+        }
         return;
       }
       const d = (await res.json()) as Partial<AgentSettings>;
@@ -103,13 +118,11 @@ export default function AdminPage() {
         enabledTools: Array.isArray(d.enabledTools) ? d.enabledTools : [],
       });
       setLoaded(true);
-      // Pull the gateway tool catalog (best-effort; empty if the gateway is down).
-      fetch('/api/tools', { headers: { authorization: `Bearer ${tok}`, accept: 'application/json' } })
+      authFetch('/api/tools')
         .then((r) => (r.ok ? r.json() : null))
         .then((t) => setTools(Array.isArray(t?.data) ? t.data : []))
         .catch(() => setTools([]));
-      // Pull vault status (which tools have a stored credential + whether the vault is on).
-      fetch('/api/tool-credentials', { headers: { authorization: `Bearer ${tok}`, accept: 'application/json' } })
+      authFetch('/api/tool-credentials')
         .then((r) => (r.ok ? r.json() : null))
         .then((v) => v && setVault({ vaultConfigured: Boolean(v.vaultConfigured), toolIds: Array.isArray(v.toolIds) ? v.toolIds : [] }))
         .catch(() => {});
@@ -118,38 +131,127 @@ export default function AdminPage() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [authFetch]);
 
-  // Once we have a token, fetch the current settings to prefill the editor.
+  // On mount: an active OTP session (cookie) signs you straight in; else fall back
+  // to a previously-entered admin token. Never read storage during render (Rule #24).
   useEffect(() => {
-    if (token) void load(token);
-  }, [token, load]);
+    let cancelled = false;
+    fetch('/api/admin/session', { headers: { accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        if (cancelled) return;
+        if (s?.authenticated) {
+          tokenRef.current = null;
+          setAdminEmail(typeof s.email === 'string' ? s.email : null);
+          setAuthed(true);
+          void load();
+        } else {
+          const t = sessionStorage.getItem(TOKEN_KEY);
+          if (t) {
+            tokenRef.current = t;
+            setAuthed(true);
+            void load();
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
+
+  // ── OTP login ──────────────────────────────────────────────────────────────
+  const requestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/admin/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (res.status === 429) {
+        setNote({ kind: 'err', text: 'Too many requests — wait a minute.' });
+        return;
+      }
+      setOtpSent(true);
+      setNote({ kind: 'ok', text: 'If that email is an admin, a 6-digit code is on its way.' });
+    } catch {
+      setNote({ kind: 'err', text: 'Network error — try again.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/admin/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), token: code.trim() }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNote({ kind: 'err', text: res.status === 401 ? 'Invalid or expired code.' : `Sign-in failed (${res.status}).` });
+        return;
+      }
+      tokenRef.current = null;
+      setAdminEmail(typeof d.email === 'string' ? d.email : email.trim());
+      setCode('');
+      setOtpSent(false);
+      setAuthed(true);
+      void load();
+    } catch {
+      setNote({ kind: 'err', text: 'Network error verifying code.' });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const unlock = (e: React.FormEvent) => {
     e.preventDefault();
     const t = tokenInput.trim();
     if (!t) return;
     sessionStorage.setItem(TOKEN_KEY, t);
-    setToken(t);
+    tokenRef.current = t;
+    setAuthed(true);
+    void load();
   };
 
-  const lock = () => {
+  const lock = async () => {
+    try {
+      await fetch('/api/admin/session', { method: 'POST' }); // clear OTP cookie
+    } catch {
+      /* ignore */
+    }
     sessionStorage.removeItem(TOKEN_KEY);
-    setToken(null);
+    tokenRef.current = null;
+    setAuthed(false);
+    setAdminEmail(null);
     setTokenInput('');
+    setEmail('');
+    setCode('');
+    setOtpSent(false);
     setLoaded(false);
     setSettings(EMPTY);
     setNote(null);
   };
 
   const save = async () => {
-    if (!token) return;
+    if (!authed) return;
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch('/api/config', {
+      const res = await authFetch('/api/config', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
       const d = await res.json().catch(() => ({}));
@@ -167,15 +269,15 @@ export default function AdminPage() {
   };
 
   const setCred = async (toolId: string) => {
-    if (!token) return;
+    if (!authed) return;
     const secret = credInput[toolId];
     if (!secret) return;
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch('/api/tool-credentials', {
+      const res = await authFetch('/api/tool-credentials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ toolId, secret }),
       });
       const d = await res.json().catch(() => ({}));
@@ -194,13 +296,13 @@ export default function AdminPage() {
   };
 
   const clearCred = async (toolId: string) => {
-    if (!token) return;
+    if (!authed) return;
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch('/api/tool-credentials', {
+      const res = await authFetch('/api/tool-credentials', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ toolId }),
       });
       if (!res.ok) {
@@ -218,11 +320,11 @@ export default function AdminPage() {
   };
 
   const reindex = async () => {
-    if (!token) return;
+    if (!authed) return;
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch('/api/ingest', { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+      const res = await authFetch('/api/ingest', { method: 'POST' });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         setNote({ kind: 'err', text: d?.message || d?.error || `Re-index failed (${res.status}).` });
@@ -236,29 +338,101 @@ export default function AdminPage() {
     }
   };
 
-  // ── token gate ────────────────────────────────────────────────────────────
-  if (!token || !loaded) {
+  // ── login gate (email OTP primary; admin-token fallback for machines/break-glass) ──
+  if (!authed || !loaded) {
     return (
       <main className="min-h-screen bg-[var(--surface-secondary)] px-4 py-16">
         <div className="mx-auto max-w-sm rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] p-6 shadow-[0_8px_30px_-12px_rgba(9,9,11,0.2)]">
           <h1 className="text-[20px] font-semibold text-[var(--text-primary)]">Agent admin</h1>
-          <p className="mt-1 text-[13px] text-[var(--text-muted)]">
-            Enter your <code className="rounded bg-[var(--surface-hover)] px-1 py-0.5 text-[12px]">ADMIN_TOKEN</code> to
-            configure the agent.
-          </p>
-          <form onSubmit={unlock} className="mt-4 space-y-3">
-            <input
-              type="password"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Admin token"
-              autoComplete="off"
-              className={inputCls}
-            />
-            <button type="submit" disabled={busy || !tokenInput.trim()} className={`${btnPrimary} w-full`}>
-              {busy ? 'Checking…' : 'Unlock'}
-            </button>
-          </form>
+
+          {loginMode === 'otp' ? (
+            <>
+              <p className="mt-1 text-[13px] text-[var(--text-muted)]">
+                Sign in with your admin email — we&apos;ll send a one-time code.
+              </p>
+              {!otpSent ? (
+                <form onSubmit={requestOtp} className="mt-4 space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    className={inputCls}
+                  />
+                  <button type="submit" disabled={busy || !email.trim()} className={`${btnPrimary} w-full`}>
+                    {busy ? 'Sending…' : 'Email me a code'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={verifyOtp} className="mt-4 space-y-3">
+                  <p className="text-[12px] text-[var(--text-muted)]">Code sent to {email}.</p>
+                  <input
+                    inputMode="numeric"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="6-digit code"
+                    autoComplete="one-time-code"
+                    className={inputCls}
+                  />
+                  <button type="submit" disabled={busy || !code.trim()} className={`${btnPrimary} w-full`}>
+                    {busy ? 'Verifying…' : 'Sign in'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setCode('');
+                      setNote(null);
+                    }}
+                    className="w-full text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  >
+                    Use a different email
+                  </button>
+                </form>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('token');
+                  setNote(null);
+                }}
+                className="mt-3 w-full text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                Use an admin token instead
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-[13px] text-[var(--text-muted)]">
+                Enter your <code className="rounded bg-[var(--surface-hover)] px-1 py-0.5 text-[12px]">ADMIN_TOKEN</code>.
+              </p>
+              <form onSubmit={unlock} className="mt-4 space-y-3">
+                <input
+                  type="password"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  placeholder="Admin token"
+                  autoComplete="off"
+                  className={inputCls}
+                />
+                <button type="submit" disabled={busy || !tokenInput.trim()} className={`${btnPrimary} w-full`}>
+                  {busy ? 'Checking…' : 'Unlock'}
+                </button>
+              </form>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('otp');
+                  setNote(null);
+                }}
+                className="mt-3 w-full text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                Sign in with email instead
+              </button>
+            </>
+          )}
+
           {note && (
             <p className={`mt-3 text-[12px] ${note.kind === 'err' ? 'text-[var(--nemo-coral-dark)]' : 'text-[var(--nemo-indigo)]'}`}>
               {note.text}
@@ -276,10 +450,12 @@ export default function AdminPage() {
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-semibold text-[var(--text-primary)]">Agent admin</h1>
-            <p className="text-[13px] text-[var(--text-muted)]">Configure the widget — saved to your Supabase, live on next open.</p>
+            <p className="text-[13px] text-[var(--text-muted)]">
+              {adminEmail ? `Signed in as ${adminEmail}` : 'Configure the widget — live on next open.'}
+            </p>
           </div>
           <button type="button" onClick={lock} className={btnGhost}>
-            Lock
+            {adminEmail ? 'Sign out' : 'Lock'}
           </button>
         </header>
 

@@ -5,6 +5,7 @@
 // trigger it. Run it after your docs/site change.
 import { loadConfig } from '@/lib/config';
 import { readDocsDir, crawlWebsite, ingest, type SourceDoc } from '@/lib/ingest';
+import { isAuthorized } from '@/lib/admin-auth';
 import path from 'node:path';
 
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ function json(obj: unknown, status: number): Response {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.ADMIN_TOKEN}`) {
+  if (!isAuthorized(req)) {
     return json({ error: 'unauthorized' }, 401);
   }
 

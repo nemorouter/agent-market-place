@@ -12,6 +12,7 @@
 // /api/ingest. Reads degrade to env defaults on any Supabase failure.
 import { loadConfig } from '@/lib/config';
 import { loadSettings, saveSettings, publicSettings, type AgentSettings } from '@/lib/settings';
+import { isAuthorized } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // settings live in Supabase, per-request
@@ -23,20 +24,14 @@ function json(obj: unknown, status: number): Response {
   });
 }
 
-function isAdmin(req: Request): boolean {
-  const token = process.env.ADMIN_TOKEN;
-  // No token configured → admin surface is disabled (never silently world-writable).
-  return Boolean(token) && req.headers.get('authorization') === `Bearer ${token}`;
-}
-
 export async function GET(req: Request): Promise<Response> {
   const settings = await loadSettings();
   // Admins get the full object to prefill the editor; everyone else the safe subset.
-  return json(isAdmin(req) ? settings : publicSettings(settings), 200);
+  return json(isAuthorized(req) ? settings : publicSettings(settings), 200);
 }
 
 export async function PUT(req: Request): Promise<Response> {
-  if (!isAdmin(req)) return json({ error: 'unauthorized' }, 401);
+  if (!isAuthorized(req)) return json({ error: 'unauthorized' }, 401);
 
   let body: Partial<AgentSettings>;
   try {

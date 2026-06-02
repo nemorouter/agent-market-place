@@ -120,8 +120,11 @@ Same fork, **their own** Supabase project, **their own** `sk-nemo` key, their ow
 point `NEMO_BASE_URL` at a self-hosted Nemo gateway.
 
 ## Configure from the dashboard — `/admin` (no redeploy)
-Open **`/admin`**, enter your `ADMIN_TOKEN` (the same one that gates re-index), and
-edit the agent's **name, system prompt, model, suggestion chips, quick links, and
+Open **`/admin`** and sign in. **Humans** log in with **email OTP** — only addresses on
+`ADMIN_EMAILS` can request a 6-digit code (sent via Supabase Auth); a valid code mints an
+HttpOnly session cookie. **Machines/scripts** (e.g. `scripts/ingest.sh`) keep using the
+`ADMIN_TOKEN` bearer. Both are accepted by every admin route (`lib/admin-auth.ts`); set
+`ADMIN_SESSION_SECRET` to enable OTP. Once in, edit the agent's **name, system prompt, model, suggestion chips, quick links, and
 contact methods (phone / email / support)** in a UI. Save writes a single
 `agent_config` row to **your own Supabase**; the widget reads it from
 `GET /api/config` on open. The token lives in `sessionStorage` only (cleared on tab
@@ -252,6 +255,7 @@ lib/nemo.ts           the ONLY model client — guardrails/routing/credits live 
 lib/retrieval.ts      pgvector search (audience-scoped when signed in; extend: filters/hybrid)
 lib/identity.ts       pluggable login layer (none|jwt|header|introspect|custom)
 lib/tools.ts          MCP gateway client + bounded tool-use loop (Phase 2 consumer)
+lib/admin-auth.ts     /admin auth — email-OTP session (cookie) OR ADMIN_TOKEN bearer
 lib/vault.ts          agent-infra-only credential vault (AES-256-GCM, TOOL_VAULT_KEY)
 lib/credentials.ts    seal/store/open tool secrets (ciphertext-only at rest)
 lib/settings.ts       operator-editable settings (env defaults ← Supabase overlay)

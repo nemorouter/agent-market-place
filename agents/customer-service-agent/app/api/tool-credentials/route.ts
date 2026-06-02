@@ -10,6 +10,7 @@
 import { loadConfig } from '@/lib/config';
 import { vaultConfigured } from '@/lib/vault';
 import { setCredential, clearCredential, listCredentialedToolIds } from '@/lib/credentials';
+import { isAuthorized } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,10 +22,7 @@ function json(obj: unknown, status: number): Response {
   });
 }
 
-function isAdmin(req: Request): boolean {
-  const token = process.env.ADMIN_TOKEN;
-  return Boolean(token) && req.headers.get('authorization') === `Bearer ${token}`;
-}
+const isAdmin = isAuthorized;
 
 export async function GET(req: Request): Promise<Response> {
   if (!isAdmin(req)) return json({ error: 'unauthorized' }, 401);
