@@ -12,7 +12,14 @@ import { retrieve } from '@/lib/retrieval';
 import { chatStream, chatComplete, NemoError, type ChatMessage } from '@/lib/nemo';
 import { listTools, callTool, runToolLoop, type ToolStepEvent } from '@/lib/tools';
 import { getCredential, listCredentialedToolIds } from '@/lib/credentials';
-import { originAllowed, rateLimit, verifyCaptcha, clientIp, captchaTriggerCount } from '@/lib/security';
+import {
+  originAllowed,
+  rateLimitAsync,
+  verifyCaptcha,
+  clientIp,
+  captchaTriggerCount,
+  validateChatPayload,
+} from '@/lib/security';
 import { resolveIdentity, buildPersona } from '@/lib/identity';
 
 export const runtime = 'nodejs';
@@ -30,8 +37,8 @@ export async function POST(req: Request): Promise<Response> {
   if (!originAllowed(origin, cfg.security.allowedOrigins)) {
     return json({ error: 'origin_not_allowed' }, 403);
   }
-  // Layer 2a — per-IP rate limit
-  if (!rateLimit(`ip:${ip}`, cfg.security.rateLimit.perIpPerMin, 60_000)) {
+  // Layer 2a — per-IP rate limit (shared across instances when Upstash is set)
+  if (!(await rateLimitAsync(`ip:${ip}`, cfg.security.rateLimit.perIpPerMin, 60_000))) {
     return json({ error: 'rate_limited' }, 429);
   }
 
@@ -42,11 +49,18 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: 'bad_request' }, 400);
   }
 
+  // Bound the payload BEFORE any model/embedding spend — DoS + cost protection.
+  const valid = validateChatPayload(body.messages, cfg.security.limits);
+  if (!valid.ok) {
+    const status = valid.error === 'messages_required' || valid.error === 'bad_message' || valid.error === 'bad_role' ? 400 : 413;
+    return json({ error: valid.error }, status);
+  }
+
   const messages = body.messages ?? [];
   const session = body.sessionId || ip;
 
-  // Layer 2b — per-session rate limit
-  if (!rateLimit(`sess:${session}`, cfg.security.rateLimit.perSessionPerMin, 60_000)) {
+  // Layer 2b — per-session rate limit (shared across instances when Upstash is set)
+  if (!(await rateLimitAsync(`sess:${session}`, cfg.security.rateLimit.perSessionPerMin, 60_000))) {
     return json({ error: 'rate_limited' }, 429);
   }
 

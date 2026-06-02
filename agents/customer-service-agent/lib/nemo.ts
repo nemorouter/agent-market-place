@@ -14,6 +14,13 @@
 const BASE = (process.env.NEMO_BASE_URL || 'https://api.nemorouter.ai').replace(/\/$/, '');
 const KEY = process.env.NEMOROUTER_API_KEY; // sk-nemo-xxx — SERVER-SIDE ONLY, never sent to the browser.
 
+// Upstream timeouts — without these a hung gateway pins a serverless instance
+// until the platform kills it, which under load exhausts the instance pool. The
+// stream timeout caps total answer duration; the unary timeout covers embeddings
+// + the tool-decision rounds. Both env-tunable.
+const TIMEOUT_MS = Number(process.env.NEMO_TIMEOUT_MS) || 30_000;
+const STREAM_TIMEOUT_MS = Number(process.env.NEMO_STREAM_TIMEOUT_MS) || 120_000;
+
 if (!KEY && process.env.NODE_ENV !== 'test') {
   // Fail loudly: without a virtual key nothing works, and we NEVER fall back to a master key (Rule #15).
   console.warn('[nemo] NEMOROUTER_API_KEY is not set — chat and ingest will fail.');
@@ -89,6 +96,7 @@ export async function chatComplete(
   const res = await fetch(`${BASE}/v1/chat/completions`, {
     method: 'POST',
     headers: authHeaders(),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
     body: JSON.stringify({
       model: opts.model,
       messages: opts.messages,
@@ -128,6 +136,7 @@ export async function chatStream(opts: ChatOptions): Promise<Response> {
   const res = await fetch(`${BASE}/v1/chat/completions`, {
     method: 'POST',
     headers: authHeaders(),
+    signal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
     body: JSON.stringify({
       model: opts.model,
       messages: opts.messages,
@@ -149,6 +158,7 @@ export async function embed(model: string, input: string[]): Promise<number[][]>
   const res = await fetch(`${BASE}/v1/embeddings`, {
     method: 'POST',
     headers: authHeaders(),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
     body: JSON.stringify({ model, input }),
   });
   if (!res.ok) throw await toNemoError(res);

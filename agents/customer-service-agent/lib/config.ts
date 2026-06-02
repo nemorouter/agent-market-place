@@ -13,6 +13,8 @@ export interface SecurityConfig {
     trigger: string; // "always" | "after_N_messages"
     secretKey?: string;
   };
+  /** Hard caps on the inbound chat payload — DoS / cost-blowup protection (enterprise). */
+  limits: { maxMessages: number; maxMessageChars: number; maxTotalChars: number };
   requireEmail: boolean;
 }
 
@@ -98,6 +100,11 @@ export function loadConfig(): AgentConfig {
         provider: (env.CAPTCHA_PROVIDER as SecurityConfig['captcha']['provider']) || 'turnstile',
         trigger: env.CAPTCHA_TRIGGER || 'after_3_messages',
         secretKey: env.CAPTCHA_SECRET_KEY,
+      },
+      limits: {
+        maxMessages: num(env.MAX_MESSAGES, 60),
+        maxMessageChars: num(env.MAX_MESSAGE_CHARS, 12_000),
+        maxTotalChars: num(env.MAX_TOTAL_CHARS, 60_000),
       },
       requireEmail: bool(env.REQUIRE_EMAIL),
     },

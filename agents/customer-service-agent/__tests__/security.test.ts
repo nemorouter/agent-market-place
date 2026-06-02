@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { originAllowed, rateLimit, captchaTriggerCount } from '../lib/security';
+import {
+  originAllowed,
+  rateLimit,
+  rateLimitAsync,
+  rateLimitBackend,
+  validateChatPayload,
+  captchaTriggerCount,
+  type PayloadLimits,
+} from '../lib/security';
 
 describe('originAllowed', () => {
   const allow = ['https://acme.com', 'https://*.acme.com', 'http://localhost:3000'];
@@ -36,6 +44,53 @@ describe('rateLimit', () => {
     expect(rateLimit(key, 2, 60_000)).toBe(true);
     expect(rateLimit(key, 2, 60_000)).toBe(true);
     expect(rateLimit(key, 2, 60_000)).toBe(false);
+  });
+});
+
+describe('rateLimitAsync (distributed)', () => {
+  it('defaults to the in-memory limiter when Upstash is not configured', async () => {
+    // No UPSTASH_* env in the test env → must fall back to the local Map limiter.
+    expect(rateLimitBackend()).toBe('memory');
+    const key = `d:${Math.random()}`;
+    expect(await rateLimitAsync(key, 1, 60_000)).toBe(true);
+    expect(await rateLimitAsync(key, 1, 60_000)).toBe(false);
+  });
+});
+
+describe('validateChatPayload', () => {
+  const limits: PayloadLimits = { maxMessages: 3, maxMessageChars: 20, maxTotalChars: 40 };
+
+  it('accepts a small well-formed payload', () => {
+    expect(validateChatPayload([{ role: 'user', content: 'hi' }], limits)).toEqual({ ok: true });
+  });
+  it('rejects a non-array / empty payload', () => {
+    expect(validateChatPayload(undefined, limits)).toEqual({ ok: false, error: 'messages_required' });
+    expect(validateChatPayload([], limits)).toEqual({ ok: false, error: 'messages_required' });
+  });
+  it('rejects too many messages', () => {
+    const many = Array.from({ length: 4 }, () => ({ role: 'user', content: 'x' }));
+    expect(validateChatPayload(many, limits)).toEqual({ ok: false, error: 'too_many_messages' });
+  });
+  it('rejects an unknown role', () => {
+    expect(validateChatPayload([{ role: 'root', content: 'x' }], limits)).toEqual({ ok: false, error: 'bad_role' });
+  });
+  it('rejects an over-long single message', () => {
+    expect(validateChatPayload([{ role: 'user', content: 'x'.repeat(21) }], limits)).toEqual({
+      ok: false,
+      error: 'message_too_long',
+    });
+  });
+  it('rejects an over-large total payload', () => {
+    const msgs = [
+      { role: 'user', content: 'x'.repeat(20) },
+      { role: 'assistant', content: 'y'.repeat(20) },
+      { role: 'user', content: 'z'.repeat(5) },
+    ];
+    expect(validateChatPayload(msgs, limits)).toEqual({ ok: false, error: 'payload_too_large' });
+  });
+  it('counts non-string (multimodal) content by its JSON length', () => {
+    const big = [{ role: 'user', content: [{ type: 'text', text: 'x'.repeat(40) }] }];
+    expect(validateChatPayload(big, limits)).toEqual({ ok: false, error: 'message_too_long' });
   });
 });
 
