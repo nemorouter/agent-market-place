@@ -11,6 +11,8 @@
  * SSE event vocabulary (mirrors the backend):
  *   - content:   {"choices":[{"delta":{"content":"…"}}]}            (OpenAI-shaped)
  *   - tool step: {"nemo_event":"tool_call","tool":"…","title":"…","status":"running"|"done"}
+ *   - citations: {"nemo_event":"citations","citations":[{"title":"…","url":"…"|null}]}
+ *   - cost:      {"nemo_event":"cost","costUsd":0.0012,"partial":true}
  *   - error:     {"nemo_event":"error","message":"…","code":"…"}
  *   - terminator: [DONE]
  */
@@ -24,6 +26,11 @@ export interface ToolStep {
   tool: string;
   title: string;
   status: 'running' | 'done';
+}
+
+export interface Citation {
+  title: string;
+  url: string | null;
 }
 
 export interface AgentChatConfig {
@@ -49,6 +56,11 @@ export interface AgentChatConfig {
 export interface StreamHandlers {
   onContent?: (delta: string, full: string) => void;
   onToolStep?: (step: ToolStep) => void;
+  /** Source documents the answer was grounded in (from the agent's KB). */
+  onCitations?: (citations: Citation[]) => void;
+  /** Cost in USD attributable to this turn. `partial` true = tool/pre-stream spend only
+   *  (the streamed answer's cost rides in the provider's terminal usage chunk). */
+  onCost?: (costUsd: number, partial: boolean) => void;
   onError?: (message: string, code?: string) => void;
   onDone?: (full: string) => void;
 }
@@ -109,6 +121,15 @@ export async function streamAgentTurn(
         title: String(evt.title ?? evt.tool ?? 'Working'),
         status: evt.status === 'done' ? 'done' : 'running',
       });
+      return;
+    }
+    if (evt.nemo_event === 'citations') {
+      const list = Array.isArray(evt.citations) ? (evt.citations as Citation[]) : [];
+      handlers.onCitations?.(list);
+      return;
+    }
+    if (evt.nemo_event === 'cost') {
+      handlers.onCost?.(Number(evt.costUsd) || 0, evt.partial === true);
       return;
     }
     if (evt.nemo_event === 'error') {

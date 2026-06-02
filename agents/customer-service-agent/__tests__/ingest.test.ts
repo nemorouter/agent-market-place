@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chunk, parseAudiences } from '../lib/ingest';
+import { chunk, parseAudiences, isBlockedHost, isSafeCrawlUrl } from '../lib/ingest';
 
 describe('chunk', () => {
   it('returns a single chunk for short text', () => {
@@ -38,5 +38,36 @@ describe('parseAudiences', () => {
   });
   it('strips quotes', () => {
     expect(parseAudiences('---\naudiences: ["pro", \'beta\']\n---\n')).toEqual(['pro', 'beta']);
+  });
+});
+
+describe('isBlockedHost (SSRF guard)', () => {
+  it('blocks loopback, private, link-local, CGNAT and metadata addresses', () => {
+    for (const h of ['127.0.0.1', '10.0.0.5', '172.16.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '::1'])
+      expect(isBlockedHost(h)).toBe(true);
+  });
+  it('blocks internal/local/metadata hostnames', () => {
+    for (const h of ['localhost', 'foo.internal', 'svc.local', 'metadata.google.internal'])
+      expect(isBlockedHost(h)).toBe(true);
+  });
+  it('allows ordinary public hosts', () => {
+    for (const h of ['example.com', 'docs.acme.io', '8.8.8.8']) expect(isBlockedHost(h)).toBe(false);
+  });
+});
+
+describe('isSafeCrawlUrl', () => {
+  it('allows public http(s) URLs', () => {
+    expect(isSafeCrawlUrl('https://acme.com/docs')).toBe(true);
+    expect(isSafeCrawlUrl('http://acme.com')).toBe(true);
+  });
+  it('rejects non-http schemes and internal/metadata targets', () => {
+    for (const u of [
+      'ftp://acme.com',
+      'file:///etc/passwd',
+      'http://169.254.169.254/latest/meta-data/',
+      'http://localhost:3000',
+      'not a url',
+    ])
+      expect(isSafeCrawlUrl(u)).toBe(false);
   });
 });

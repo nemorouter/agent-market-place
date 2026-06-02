@@ -13,7 +13,7 @@
 // break the chat path. Hrefs are sanitized everywhere (no javascript:/data: links).
 
 import { loadConfig, type AgentConfig } from './config';
-import { supabaseAdmin } from './supabase';
+import { supabaseAdmin, supabaseService } from './supabase';
 
 export type ContactType = 'phone' | 'email' | 'url';
 export interface ContactMethod {
@@ -272,7 +272,7 @@ export async function saveSettings(cfg: AgentConfig, patch: Partial<AgentSetting
     contactMethods: merged.contactMethods,
     enabledTools: merged.enabledTools,
   };
-  const { error } = await supabaseAdmin()
+  const { error } = await supabaseService()
     .from(CONFIG_TABLE)
     .upsert({ agent_id: cfg.id, settings: stored, updated_at: new Date().toISOString() }, { onConflict: 'agent_id' });
   if (error) throw new Error(error.message);

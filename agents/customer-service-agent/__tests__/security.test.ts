@@ -6,6 +6,8 @@ import {
   rateLimitBackend,
   validateChatPayload,
   captchaTriggerCount,
+  clientIp,
+  verifyCaptcha,
   type PayloadLimits,
 } from '../lib/security';
 
@@ -100,5 +102,35 @@ describe('captchaTriggerCount', () => {
   });
   it('returns 0 for always', () => {
     expect(captchaTriggerCount('always')).toBe(0);
+  });
+});
+
+describe('clientIp (X-Forwarded-For spoof resistance)', () => {
+  const h = (xff?: string, real?: string) =>
+    new Headers({ ...(xff ? { 'x-forwarded-for': xff } : {}), ...(real ? { 'x-real-ip': real } : {}) });
+
+  it('uses the proxy-appended (rightmost) entry, ignoring spoofed prefixes', () => {
+    // default TRUSTED_PROXY_HOPS=1 → rightmost is the only non-spoofable token
+    expect(clientIp(h('9.9.9.9, 2.2.2.2'))).toBe('2.2.2.2');
+  });
+  it('handles a single real entry', () => {
+    expect(clientIp(h('1.1.1.1'))).toBe('1.1.1.1');
+  });
+  it('falls back to x-real-ip then unknown', () => {
+    expect(clientIp(h(undefined, '3.3.3.3'))).toBe('3.3.3.3');
+    expect(clientIp(h())).toBe('unknown');
+  });
+});
+
+describe('verifyCaptcha (fails closed)', () => {
+  const base = { enabled: true, provider: 'turnstile' as const, trigger: 'always', secretKey: 'sk' };
+  it('passes when captcha is disabled', async () => {
+    expect(await verifyCaptcha({ ...base, enabled: false }, undefined, '1.1.1.1')).toBe(true);
+  });
+  it('rejects when enabled but no token is supplied', async () => {
+    expect(await verifyCaptcha(base, undefined, '1.1.1.1')).toBe(false);
+  });
+  it('rejects (fails closed) for an unimplemented provider instead of silently passing', async () => {
+    expect(await verifyCaptcha({ ...base, provider: 'hcaptcha' }, 'tok', '1.1.1.1')).toBe(false);
   });
 });

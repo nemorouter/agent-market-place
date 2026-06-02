@@ -116,7 +116,10 @@ export function validateChatPayload(
   return { ok: true };
 }
 
-/** Layer 3 — verify a captcha token. Default provider: Cloudflare Turnstile. */
+/** Layer 3 — verify a captcha token. Default provider: Cloudflare Turnstile.
+ *  FAILS CLOSED: an enabled-but-unimplemented provider, a siteverify outage, or a
+ *  malformed reply all return false (request is challenged) — never silently passes,
+ *  and never throws (the caller checks this BEFORE its try/catch). */
 export async function verifyCaptcha(
   cfg: SecurityConfig['captcha'],
   token: string | undefined,
@@ -124,20 +127,46 @@ export async function verifyCaptcha(
 ): Promise<boolean> {
   if (!cfg.enabled) return true;
   if (!token) return false;
-  if (cfg.provider !== 'turnstile') return true; // implement hcaptcha/recaptcha here if needed
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: cfg.secretKey, response: token, remoteip: ip }),
-  });
-  const json = (await res.json()) as { success: boolean };
-  return json.success;
+  // Only Turnstile is implemented. Any other configured provider must NOT pass
+  // unverified — fail closed until that backend is wired up.
+  if (cfg.provider !== 'turnstile') return false;
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: cfg.secretKey, response: token, remoteip: ip }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { success?: boolean };
+    return json.success === true;
+  } catch {
+    return false; // siteverify down / timeout / non-JSON → challenge the request
+  }
 }
 
+// Number of TRUSTED reverse-proxy hops between the real client and this app. A client
+// can freely PREPEND X-Forwarded-For entries, but each trusted proxy APPENDS the peer it
+// saw at the right end — so the true client sits `hops` entries from the right and the
+// leftmost token is fully attacker-controlled. The real client index is `len - hops`
+// (hops=1 → rightmost, the entry our own infra set). Set this to how many proxies you
+// actually run (Cloud Run behind Google's LB = 1). Default 1.
+const TRUSTED_PROXY_HOPS = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS ?? 1) || 1);
+
+/** Best-effort client IP for rate-limit keying. Picks the X-Forwarded-For entry our
+ *  trusted proxy appended (`len - hops`, clamped), which a caller cannot forge — falling
+ *  back to x-real-ip then 'unknown'. Taking the leftmost token (the old behavior) let any
+ *  caller rotate the key with a forged header and defeat every per-IP limit. */
 export function clientIp(headers: Headers): string {
-  return (
-    (headers.get('x-forwarded-for') || '').split(',')[0].trim() || headers.get('x-real-ip') || 'unknown'
-  );
+  const xff = (headers.get('x-forwarded-for') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (xff.length) {
+    const idx = Math.min(xff.length - 1, Math.max(0, xff.length - TRUSTED_PROXY_HOPS));
+    return xff[idx];
+  }
+  return headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
 /** "after_3_messages" → 3 ; "always" → 0 */

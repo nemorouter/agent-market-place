@@ -6,7 +6,7 @@
 import { promises as fs, type Dirent } from 'node:fs';
 import path from 'node:path';
 import { embed } from './nemo';
-import { supabaseAdmin } from './supabase';
+import { supabaseService } from './supabase';
 
 export interface SourceDoc {
   title: string;
@@ -108,8 +108,81 @@ function extractLinks(html: string, base: string): string[] {
   return links;
 }
 
-/** Bounded, same-origin website crawl (stdlib fetch + naive link extraction). */
+// ── SSRF guard ───────────────────────────────────────────────────────────────
+// The crawler fetches operator-configured URLs AND links discovered inside fetched
+// pages, so a compromised/poisoned page could point us at cloud metadata or an
+// internal service. Only http(s) to a PUBLIC host is ever fetched.
+const CRAWL_TIMEOUT_MS = Number(process.env.WEBSITE_FETCH_TIMEOUT_MS) || 10_000;
+const CRAWL_MAX_BYTES = Number(process.env.WEBSITE_MAX_PAGE_BYTES) || 2_000_000; // 2 MB / page
+
+/** True for IPv4/IPv6 literals + hostnames that must NEVER be fetched server-side
+ *  (loopback, RFC-1918 private, link-local, cloud metadata, .internal/.local). */
+export function isBlockedHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  if (!h || h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h.endsWith('.internal') || h.endsWith('.local') || h === 'metadata.google.internal') return true;
+  // IPv6 loopback / link-local / unique-local
+  if (h === '::1' || h.startsWith('fe80:') || h.startsWith('fc') || h.startsWith('fd')) return true;
+  // IPv4 literal → check private/loopback/link-local/metadata ranges
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  }
+  return false;
+}
+
+/** Validate a crawl target: http(s) scheme + non-blocked host. */
+export function isSafeCrawlUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+  return !isBlockedHost(u.hostname);
+}
+
+/** Fetch a page with SSRF guard, timeout, NO redirect-following (a 3xx to an
+ *  internal host would bypass the host check), and a hard byte cap. */
+async function fetchPage(url: string): Promise<string | null> {
+  if (!isSafeCrawlUrl(url)) return null;
+  let res: Response;
+  try {
+    res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(CRAWL_TIMEOUT_MS) });
+  } catch {
+    return null;
+  }
+  if (!res.ok || !res.body) return null; // 3xx (manual) / 4xx / 5xx → skip
+  const declared = Number(res.headers.get('content-length') || 0);
+  if (declared && declared > CRAWL_MAX_BYTES) return null;
+  // Stream with a hard cap so a huge / slow-drip body can't OOM the instance.
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let out = '';
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > CRAWL_MAX_BYTES) {
+      await reader.cancel().catch(() => {});
+      break;
+    }
+    out += decoder.decode(value, { stream: true });
+  }
+  return out;
+}
+
+/** Bounded, same-origin website crawl (stdlib fetch + naive link extraction).
+ *  SSRF-guarded: only public http(s) hosts, no redirect-following, per-page byte cap. */
 export async function crawlWebsite(startUrl: string, maxPages: number): Promise<SourceDoc[]> {
+  if (!isSafeCrawlUrl(startUrl)) return [];
   const origin = new URL(startUrl).origin;
   const seen = new Set<string>();
   const queue: string[] = [startUrl];
@@ -118,38 +191,37 @@ export async function crawlWebsite(startUrl: string, maxPages: number): Promise<
     const url = queue.shift() as string;
     if (seen.has(url)) continue;
     seen.add(url);
-    let html = '';
-    try {
-      html = await (await fetch(url)).text();
-    } catch {
-      continue;
-    }
+    const html = await fetchPage(url);
+    if (html == null) continue;
     const text = htmlToText(html);
     const title = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || url).trim();
     if (text.length > 200) docs.push({ title, url, content: text });
     for (const href of extractLinks(html, url)) {
-      if (href.startsWith(origin) && !seen.has(href) && queue.length + docs.length < maxPages) queue.push(href);
+      if (href.startsWith(origin) && isSafeCrawlUrl(href) && !seen.has(href) && queue.length + docs.length < maxPages)
+        queue.push(href);
     }
   }
   return docs;
 }
 
-/** Full ingest: sources → chunks → embeddings → upsert. Replaces the KB (full re-index). */
+/** Full ingest: sources → chunks → embeddings → upsert. Replaces the KB (full re-index).
+ *  Writes require the service-role key (RLS-bypassing); fails loudly otherwise.
+ *  Embeds EVERYTHING first, THEN swaps the table — so an embedding/gateway failure
+ *  aborts before the wipe and can never leave the KB empty. */
 export async function ingest(opts: { docs: SourceDoc[]; embeddingModel: string; batchSize?: number }): Promise<number> {
-  const db = supabaseAdmin();
-  // Full re-index: clear the table, then insert fresh chunks.
-  await db.from('kb_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const db = supabaseService();
 
   const rows: Array<{ title: string; url: string | null; content: string; audiences?: string[] }> = [];
   for (const d of opts.docs)
     for (const c of chunk(d.content)) rows.push({ title: d.title, url: d.url, content: c, audiences: d.audiences });
 
+  // 1) Embed all batches up front. Any failure throws BEFORE we touch the table.
   const batch = opts.batchSize ?? 64;
-  let inserted = 0;
+  const payloads: Array<Record<string, unknown>> = [];
   for (let i = 0; i < rows.length; i += batch) {
     const slice = rows.slice(i, i + batch);
     const vectors = await embed(opts.embeddingModel, slice.map((r) => r.content));
-    const payload = slice.map((r, j) => {
+    slice.forEach((r, j) => {
       const row: Record<string, unknown> = {
         title: r.title,
         url: r.url,
@@ -159,11 +231,17 @@ export async function ingest(opts: { docs: SourceDoc[]; embeddingModel: string; 
       // Only write the column when a doc declared audiences — so installs that
       // haven't run the (optional) migration keep inserting against the DB default.
       if (r.audiences && r.audiences.length) row.audiences = r.audiences;
-      return row;
+      payloads.push(row);
     });
-    const { error } = await db.from('kb_chunks').insert(payload);
+  }
+
+  // 2) Now that every vector exists, clear the table and insert the fresh set.
+  await db.from('kb_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  let inserted = 0;
+  for (let i = 0; i < payloads.length; i += batch) {
+    const { error } = await db.from('kb_chunks').insert(payloads.slice(i, i + batch));
     if (error) throw new Error(`ingest insert failed: ${error.message}`);
-    inserted += slice.length;
+    inserted += Math.min(batch, payloads.length - i);
   }
   return inserted;
 }

@@ -73,6 +73,11 @@ const STYLE = `
   border-radius: 999px; animation: nspin .7s linear infinite; }
 .step.done .spin { border: 0; }
 .step.done::before { content: '✓'; color: var(--accent); }
+.sources { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.sources .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #a1a1aa; width: 100%; }
+.sources a { font-size: 11px; color: #52525b; text-decoration: none; border: 1px solid rgba(9,9,11,.12);
+  border-radius: 999px; padding: 1px 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sources a:hover { color: #18181b; }
 @keyframes nspin { to { transform: rotate(360deg); } }
 .err { font-size: 12px; color: #52525b; background: #f4f4f5; border: 1px solid rgba(9,9,11,.1);
   border-radius: 8px; padding: 8px 12px; }
@@ -192,6 +197,32 @@ export function mount(opts: WidgetOptions = {}): () => void {
         onContent: (_d, full) => {
           acc = full;
           bubble.textContent = full;
+          body.scrollTop = body.scrollHeight;
+        },
+        onCitations: (cites) => {
+          const seen = new Set<string>();
+          const uniq = cites.filter((c) => {
+            const k = (c.url || c.title || '').trim().toLowerCase();
+            if (!k || seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+          if (!uniq.length) return;
+          const row = el('div', 'sources');
+          row.appendChild(el('span', 'lbl', 'Sources'));
+          for (const c of uniq) {
+            if (c.url) {
+              const a = document.createElement('a');
+              a.href = c.url;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              a.textContent = c.title || c.url;
+              row.appendChild(a);
+            } else {
+              row.appendChild(el('span', '', c.title));
+            }
+          }
+          bubble.insertAdjacentElement('afterend', row);
           body.scrollTop = body.scrollHeight;
         },
         onError: (msg) => {

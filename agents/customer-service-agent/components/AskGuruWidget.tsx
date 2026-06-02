@@ -192,11 +192,31 @@ interface ToolStep {
   status: 'running' | 'done';
 }
 
+interface Citation {
+  title: string;
+  url: string | null;
+}
+
+/** Collapse citations that point at the same source (multiple KB chunks of one doc) so
+ *  the "Sources" row shows each document once. Keyed by url, else title. */
+function dedupeCitations(list: Citation[]): Citation[] {
+  const seen = new Set<string>();
+  const out: Citation[] = [];
+  for (const c of list) {
+    const key = (c.url || c.title || '').trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
 interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
   content: string;
   steps?: ToolStep[];
+  citations?: Citation[];
 }
 
 /* Minimal Web Speech API surface — the DOM lib ships these as `any`/absent
@@ -535,6 +555,18 @@ export function AskGuruWidget({
                   return { ...m, steps };
                 }),
               );
+              return;
+            }
+            if (json?.nemo_event === 'citations') {
+              const list: Citation[] = Array.isArray(json.citations) ? json.citations : [];
+              if (list.length)
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === assistantId ? { ...m, citations: list } : m)),
+                );
+              return;
+            }
+            if (json?.nemo_event === 'cost') {
+              // Cost is surfaced for observability; not rendered to end-users today.
               return;
             }
             if (json?.nemo_event === 'error') {
@@ -1066,6 +1098,36 @@ export function AskGuruWidget({
                                 </span>
                               )}
                             </div>
+                            {m.citations && m.citations.length > 0 && m.content && (
+                              <div className="flex flex-col gap-1 pt-0.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                                  Sources
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {dedupeCitations(m.citations).map((c, i) =>
+                                    c.url ? (
+                                      <a
+                                        key={`${c.url}-${i}`}
+                                        href={c.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                      >
+                                        <Link2 className="h-3 w-3 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                                        <span className="truncate">{c.title || c.url}</span>
+                                      </a>
+                                    ) : (
+                                      <span
+                                        key={`cite-${i}`}
+                                        className="inline-flex max-w-full items-center truncate rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]"
+                                      >
+                                        <span className="truncate">{c.title}</span>
+                                      </span>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ),
