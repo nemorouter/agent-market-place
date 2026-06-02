@@ -15,6 +15,15 @@ metadata:
 > in `agents/customer-service-agent/`, reusing ONE `sk-nemo` key (no new API). The ONLY piece
 > on `main` but not yet on prod is the **nemo-backend gateway credential change** (PR #197) —
 > it needs a core-backend rollout to light up credentialed tool *execution* in production.
+>
+> **Production-hardened for scale (2026-06-01).** Horizontally scalable + enterprise-secure:
+> distributed rate limit (Upstash REST, in-memory fallback that never breaks chat), inbound
+> payload caps (DoS/cost protection), upstream timeouts, `GET /api/health[?ready=1]` liveness +
+> readiness probes, and security-header middleware (`/admin` frame-lockdown). Tenancy is
+> **isolation-by-deployment** — one fork per customer (own Supabase + own budgeted `sk-nemo`
+> key + own `TOOL_VAULT_KEY`); "thousands of customers" = thousands of isolated forks, not one
+> process host-routing many tenants. Authoritative posture doc:
+> `agents/customer-service-agent/PRODUCTION.md`.
 
 # amp-architecture — Top-level integration contract
 

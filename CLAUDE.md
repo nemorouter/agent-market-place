@@ -89,6 +89,18 @@ separate-project forks use `public` — **never `public` of the shared Nemo DB**
 (additive + idempotent; run per-schema). Writes use the service-role key; the public anon key gets
 no direct table access (reads go through `match_chunks` RPC).
 
+### Production, scale & multi-tenancy
+**`PRODUCTION.md` is the authoritative posture doc** (isolation model, scale, security layers,
+deploy checklist). Tenancy is **isolation-by-deployment**: one fork per customer, each with its
+own Supabase + its own `sk-nemo` key (per-day budget = hard spend cap) + its own `TOOL_VAULT_KEY`
+— "thousands of customers" = thousands of isolated forks against the one gateway, not one process
+host-routing many tenants. Horizontal scale is real: the rate limiter is **distributed**
+(`UPSTASH_REDIS_REST_*` → shared window across instances; in-memory fallback never breaks chat),
+every Nemo call is **timeout-bounded** (`NEMO_TIMEOUT_MS` / `NEMO_STREAM_TIMEOUT_MS`), inbound
+payloads are **capped** before any spend (`validateChatPayload`, `MAX_MESSAGES/_CHARS`), and
+**`GET /api/health[?ready=1]`** drives LB / Cloud Run probes (503 until Supabase + key are ready).
+Security headers + `/admin` frame-lockdown live in `middleware.ts`.
+
 ## Deploy (manual — the script is broken)
 
 The app deploys as its **own Cloud Run service `guru-cs-agent`** (`nemo-prod-deploy` / `us-central1`),
