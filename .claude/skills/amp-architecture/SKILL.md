@@ -3,9 +3,18 @@ name: amp-architecture
 description: Use when starting any agent-market-place work — defines the "no new APIs" constraint, the integration contract with the existing Nemo gateway, and which existing skills/rules are inherited. Read this FIRST before touching amp-mcp-gateway, amp-agent-runtime, amp-frontend-widget, or amp-billing-observability.
 metadata:
   type: architecture
-  status: TODO
+  status: partially-shipped
   owner: surasani.rama@gmail.com
 ---
+
+> **Status (2026-06-02) — customer-service-agent surfaces SHIPPED + LIVE on prod (`guru-cs-agent`).**
+> Built, tested, and deployed: the **config dashboard** (`/admin`), the **config-driven widget**,
+> the **MCP tool consumer** (bounded client-side tool-use loop), the **agent-infra credential
+> vault** (agent owns the key; AES-256-GCM), and **self-contained email-OTP admin login**
+> (SendGrid + signed cookie — no Supabase Auth, isolated from Nemo + super-admin logins). All
+> in `agents/customer-service-agent/`, reusing ONE `sk-nemo` key (no new API). The ONLY piece
+> on `main` but not yet on prod is the **nemo-backend gateway credential change** (PR #197) —
+> it needs a core-backend rollout to light up credentialed tool *execution* in production.
 
 # amp-architecture — Top-level integration contract
 

@@ -7,6 +7,23 @@ metadata:
   owner: surasani.rama@gmail.com
 ---
 
+> **Implemented in `agents/customer-service-agent/` + LIVE on prod (`guru-cs-agent`, 2026-06-02).**
+> The runnable agent ships a real **operator dashboard at `/admin`** — the standalone agent's
+> own dashboard, distinct from the planned 01-frontend-end playground described below:
+> - **Config dashboard** — edit agent name, system prompt, model, suggestion chips, quick
+>   links, contact methods, enabled tools; persisted to the agent's OWN Supabase
+>   (`agent_config`, overlaying env defaults). Widget reads `GET /api/config`; the public
+>   projection never leaks `systemPrompt`/`model`/`enabledTools`.
+> - **Auth** — self-contained **email-OTP login** (SendGrid + an HMAC-signed challenge cookie
+>   → local signed session; `lib/admin-auth.ts`). **No Supabase Auth / no `auth.users`** —
+>   isolated from Nemo user logins. Allowlisted by `ADMIN_EMAILS`; `ADMIN_TOKEN` bearer kept
+>   for scripts/machines (`isAuthorized` = session cookie OR token).
+> - **Tools + vault** — `/admin` lists MCP-gateway tools + stores per-tool credentials sealed
+>   by the agent-infra vault (`lib/vault.ts`, AES-256-GCM, `TOOL_VAULT_KEY`).
+> - **Widget** — config-driven (header name, suggestions, quick links, Contact section, live
+>   tool-call steps). Files: `app/admin/page.tsx`, `app/api/{config,tools,tool-credentials,
+>   admin/*}`, `lib/{settings,vault,credentials,admin-auth,email}.ts`.
+
 # amp-frontend-widget — Pluggable widget + playground
 
 > **Status: SHIPPED v1 (2026-05-29).** The pluggable widget is built and **separately deployable**: `agent-market-place/frontend/` — `src/core.ts` (framework-agnostic stream client) + `src/embed.ts` (zero-dependency Shadow-DOM `<script>` widget, `NemoAgentWidget.mount(...)`), bundling to a single ~12 kb file (`@nemorouter/agent-widget`). It mounts on any site with the customer's own key OR a same-origin `proxyPath`. Our first-party copy is `01-frontend-end/src/components/landing/AskNemoWidget.tsx` (React), which dogfoods it via `/api/public/ask` → `/v1/agents/nemo-support/respond`. The admin **playground** surface remains Phase 2. SoT: mono-repo skill `nemo-mcp-gateway`.

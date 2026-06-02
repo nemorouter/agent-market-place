@@ -7,6 +7,14 @@ metadata:
   owner: surasani.rama@gmail.com
 ---
 
+> **Client-side tool-use loop shipped (2026-06-02).** `agents/customer-service-agent/lib/tools.ts`
+> runs a bounded, injectable `runToolLoop`: the model picks a gateway tool → the agent decrypts
+> any sealed credential (agent-infra vault) → calls `POST /v1/mcp/tools/{id}/call` → folds the
+> result into the answer's context → streams the FINAL answer with tools off (tool steps surfaced
+> as `nemo_event: tool_call` SSE the widget renders). Gated on `enabledTools`; an unreachable
+> gateway / unsupported model / tool error degrades to pure RAG (zero regression). The agent keeps
+> its own RAG; tools AUGMENT, never gate. Non-streaming `chatComplete` drives the decision rounds.
+
 # amp-agent-runtime — Agent loop + session + streaming
 
 > **Status: SHIPPED v1 (2026-05-29).** The loop runs **server-side** inside nemo-backend (`03-nemo-backend/nemo_backend/mcp_gateway/agent_runtime.py:stream_agent_turn`) — stateless (full history per turn), streamed as SSE. A framework-agnostic **client** runtime ships in `agent-market-place/frontend/src/core.ts` (`@nemorouter/agent-runtime`). SoT: mono-repo skill `nemo-mcp-gateway`. v1 chose stateless-respond over Redis sessions (horizontal scale, zero session storage); sessions/threads are Phase 2. The design below is the Phase-2 roadmap.

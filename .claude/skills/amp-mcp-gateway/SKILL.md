@@ -7,6 +7,18 @@ metadata:
   owner: surasani.rama@gmail.com
 ---
 
+> **Agent-infra credential vault shipped (2026-06-02).** For customer-BYO tool secrets, the
+> CONSUMER side (`agents/customer-service-agent/`) seals secrets with AES-256-GCM using a key
+> that lives ONLY in the agent env (`TOOL_VAULT_KEY`) — ciphertext in the agent's own Supabase
+> (`tool_credentials`), the platform never holds the key. The agent decrypts and passes the
+> secret TRANSIENTLY per call. **Gateway side (mono-repo PR #197, on `main`):**
+> `ToolContext.credential`, `execute_tool(credential=...)`, `POST /v1/mcp/tools/{id}/call`
+> reads `body.credential`, + reference tool `vault_echo` (returns a fingerprint, never the
+> secret). This is the **agent-owns-the-key** model — it supersedes the platform-side
+> `super_admin.tool_accounts` vault for customer-BYO secrets (that vault remains the pattern
+> for platform-managed tool creds). ⚠️ Gateway change is on `main` but **NOT yet deployed to
+> prod nemo-backend** — credentialed tool *execution* on prod waits on that core rollout.
+
 # amp-mcp-gateway — Backend routes + tool catalog + vault
 
 > **Status: SHIPPED v1 (2026-05-29).** Built central, in-process inside nemo-backend per interpretation 4.A. Authoritative SoT is now the mono-repo skill **`nemo-mcp-gateway`** + `docs/superpowers/specs/2026-05-29-mcp-gateway-agent-marketplace-design.md`. Real code: `03-nemo-backend/nemo_backend/mcp_gateway/`. Live routes: `GET /v1/mcp/tools`, `POST /v1/mcp/tools/{id}/call`, `GET /v1/agents`, `POST /v1/agents/{id}/respond`. v1 tool: `nemo_docs_search` (curated, no vault). Phase 2 (not yet built): `super_admin.tool_accounts` vault for credentialed tools, `nemo.agent_tool_invocations` audit table, per-org agent/grant tables. The design below is retained as the Phase-2 roadmap.
