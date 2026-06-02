@@ -57,6 +57,19 @@ export interface ChatMessage {
   content: MessageContent;
 }
 
+/** OpenAI-style function tool spec (what the gateway's tool.openai_spec() returns). */
+export interface ToolFunctionSpec {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}
+
+/** A tool call the model asked us to make (OpenAI function-calling shape). */
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
 export interface ChatOptions {
   model: string; // model OR model_group alias — Nemo applies routing/fallback.
   messages: ChatMessage[];
@@ -64,6 +77,49 @@ export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   sessionId?: string; // forwarded as metadata for per-session observability.
+  tools?: ToolFunctionSpec[]; // function-calling specs (tool-decision rounds only).
+}
+
+/** One NON-streaming completion. Used for the tool-decision rounds of the agent
+ *  loop (we need the structured tool_calls back before streaming a final answer).
+ *  Returns the assistant text + any tool calls the model requested. */
+export async function chatComplete(
+  opts: ChatOptions,
+): Promise<{ content: string; toolCalls: ToolCall[] }> {
+  const res = await fetch(`${BASE}/v1/chat/completions`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      model: opts.model,
+      messages: opts.messages,
+      stream: false,
+      temperature: opts.temperature ?? 0.2,
+      max_tokens: opts.maxTokens ?? 1024,
+      ...(opts.tools?.length ? { tools: opts.tools, tool_choice: 'auto' } : {}),
+      ...(opts.guardrails?.length ? { guardrails: opts.guardrails } : {}),
+      metadata: { source: 'agent-market-place', session_id: opts.sessionId },
+    }),
+  });
+  if (!res.ok) throw await toNemoError(res);
+  const json = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+      };
+    }>;
+  };
+  const msg = json.choices?.[0]?.message ?? {};
+  const toolCalls: ToolCall[] = (msg.tool_calls ?? []).map((tc, i) => {
+    let args: Record<string, unknown> = {};
+    try {
+      args = tc.function?.arguments ? JSON.parse(tc.function.arguments) : {};
+    } catch {
+      args = {};
+    }
+    return { id: tc.id || `call_${i}`, name: tc.function?.name || '', arguments: args };
+  });
+  return { content: typeof msg.content === 'string' ? msg.content : '', toolCalls };
 }
 
 /** Streaming chat completion. Returns the raw SSE Response from Nemo so the route

@@ -12,6 +12,7 @@ const FULL: AgentSettings = {
   suggestions: ['How does pricing work?'],
   quickLinks: [{ label: 'Docs', href: '/docs' }],
   contactMethods: [{ type: 'phone', label: 'Call', value: '+1 (555) 010-2030' }],
+  enabledTools: [],
 };
 
 const loadSettings = vi.fn(async () => FULL);

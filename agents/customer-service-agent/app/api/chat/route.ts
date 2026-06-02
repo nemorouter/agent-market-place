@@ -9,7 +9,8 @@
 import { loadConfig } from '@/lib/config';
 import { loadSettings } from '@/lib/settings';
 import { retrieve } from '@/lib/retrieval';
-import { chatStream, NemoError, type ChatMessage } from '@/lib/nemo';
+import { chatStream, chatComplete, NemoError, type ChatMessage } from '@/lib/nemo';
+import { listTools, callTool, runToolLoop, type ToolStepEvent } from '@/lib/tools';
 import { originAllowed, rateLimit, verifyCaptcha, clientIp, captchaTriggerCount } from '@/lib/security';
 import { resolveIdentity, buildPersona } from '@/lib/identity';
 
@@ -83,14 +84,50 @@ export async function POST(req: Request): Promise<Response> {
       citations = chunks.map((c) => ({ title: c.title, url: c.url }));
     }
 
+    // ── Optional MCP-gateway tool use (Phase 2) ──────────────────────────────
+    // When the operator enabled tools, run a bounded tool-decision loop against
+    // the Nemo gateway (each tool call enforces guardrail→reserve→settle server-
+    // side). Tool output is folded into the answer's context. Fully graceful: an
+    // unreachable gateway / unsupported model / tool error → pure-RAG answer.
+    let toolContext = '';
+    const toolSteps: ToolStepEvent[] = [];
+    if (question && settings.enabledTools.length) {
+      try {
+        const catalog = await listTools();
+        const enabled = catalog.filter((t) => settings.enabledTools.includes(t.id));
+        if (enabled.length) {
+          const loop = await runToolLoop({
+            messages: [
+              { role: 'system', content: `${settings.systemPrompt}\n\nYou may call tools when they help answer. Prefer the provided context first.` },
+              ...messages,
+            ],
+            enabled,
+            maxSteps: cfg.maxSteps,
+            chat: (msgs, tools) =>
+              chatComplete({ model: settings.model, messages: msgs, tools, guardrails: cfg.guardrails, sessionId: session }),
+            call: (id, args) => callTool(id, args),
+            onStep: (e) => {
+              const i = toolSteps.findIndex((s) => s.tool === e.tool);
+              if (i >= 0) toolSteps[i] = e;
+              else toolSteps.push(e);
+            },
+          });
+          toolContext = loop.toolContext;
+        }
+      } catch {
+        /* tool layer is best-effort — never blocks the answer */
+      }
+    }
+
     const system: ChatMessage = {
       role: 'system',
       content: `${settings.systemPrompt}${buildPersona(identity, cfg.identity)}\n\nContext:\n${
         context || '(no relevant context found)'
-      }`,
+      }${toolContext}`,
     };
 
-    // Nemo applies guardrails + routing/fallback + credit reserve+settle here.
+    // Nemo applies guardrails + routing/fallback + credit reserve+settle here. The
+    // final answer streams WITHOUT tools (tool results are already in the context).
     const upstream = await chatStream({
       model: settings.model,
       messages: [system, ...messages],
@@ -102,7 +139,33 @@ export async function POST(req: Request): Promise<Response> {
     const cost = upstream.headers.get('x-litellm-response-cost');
     if (cost) headers.set('x-nemo-response-cost', cost);
     headers.set('x-nemo-citations', Buffer.from(JSON.stringify(citations)).toString('base64'));
-    return new Response(upstream.body, { status: 200, headers });
+
+    // No tools ran → stream upstream untouched (identical to the pure-RAG path).
+    if (!toolSteps.length || !upstream.body) {
+      return new Response(upstream.body, { status: 200, headers });
+    }
+    // Tools ran → prepend the tool-step events (widget renders them) then pipe the answer.
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for (const s of toolSteps) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ nemo_event: 'tool_call', tool: s.tool, title: s.title, status: 'done' })}\n\n`),
+          );
+        }
+        const reader = upstream.body!.getReader();
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(body, { status: 200, headers });
   } catch (e) {
     if (e instanceof NemoError) return json({ error: e.code, message: e.message }, e.status);
     return json({ error: 'internal_error' }, 500);

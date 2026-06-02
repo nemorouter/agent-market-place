@@ -26,7 +26,7 @@ export interface QuickLink {
   href: string;
 }
 
-/** The full editable surface. systemPrompt/model/greet are SERVER-ONLY. */
+/** The full editable surface. systemPrompt/model/greet/enabledTools are SERVER-ONLY. */
 export interface AgentSettings {
   agentName: string;
   systemPrompt: string;
@@ -35,6 +35,8 @@ export interface AgentSettings {
   suggestions: string[];
   quickLinks: QuickLink[];
   contactMethods: ContactMethod[];
+  /** Gateway tool ids the agent may use (MCP gateway, Phase 2). Empty = pure RAG. */
+  enabledTools: string[];
 }
 
 /** The browser-facing projection — ONLY presentation fields cross the wire. */
@@ -150,6 +152,16 @@ export function parseQuickLinks(v: string | undefined): QuickLink[] {
   }
 }
 
+/** Sanitize a tool-id list: keep non-empty strings, trimmed + de-duplicated. */
+export function sanitizeTools(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return [];
+  const out: string[] = [];
+  for (const v of arr) {
+    if (typeof v === 'string' && v.trim() && !out.includes(v.trim())) out.push(v.trim());
+  }
+  return out;
+}
+
 /** Parse suggestions — accepts a JSON array OR a comma-separated list. */
 export function parseSuggestions(v: string | undefined): string[] {
   if (!v || !v.trim()) return [];
@@ -179,6 +191,8 @@ export function defaultSettings(cfg: AgentConfig): AgentSettings {
     suggestions: suggestions.length ? suggestions : DEFAULT_SUGGESTIONS,
     quickLinks: quickLinks.length ? quickLinks : DEFAULT_QUICK_LINKS,
     contactMethods: contactMethods.length ? contactMethods : DEFAULT_CONTACT_METHODS,
+    // Tools default OFF (pure RAG) unless the operator enables them. Comma list in env.
+    enabledTools: sanitizeTools((env.TOOLS_ENABLED || '').split(',')),
   };
 }
 
@@ -199,6 +213,9 @@ export function mergeSettings(base: AgentSettings, over: Partial<AgentSettings> 
       Array.isArray(over.contactMethods) && over.contactMethods.length
         ? sanitizeContactMethods(over.contactMethods)
         : base.contactMethods,
+    // enabledTools is intentionally NOT length-gated: an empty array is a valid,
+    // deliberate "turn all tools off" — only `undefined` falls back to the base.
+    enabledTools: Array.isArray(over.enabledTools) ? sanitizeTools(over.enabledTools) : base.enabledTools,
   };
   return out;
 }
@@ -253,6 +270,7 @@ export async function saveSettings(cfg: AgentConfig, patch: Partial<AgentSetting
     suggestions: merged.suggestions,
     quickLinks: merged.quickLinks,
     contactMethods: merged.contactMethods,
+    enabledTools: merged.enabledTools,
   };
   const { error } = await supabaseAdmin()
     .from(CONFIG_TABLE)

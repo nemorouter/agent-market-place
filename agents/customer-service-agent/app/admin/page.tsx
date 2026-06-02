@@ -34,6 +34,12 @@ interface AgentSettings {
   suggestions: string[];
   quickLinks: QuickLink[];
   contactMethods: ContactMethod[];
+  enabledTools: string[];
+}
+interface ToolSpec {
+  id: string;
+  title: string;
+  description: string;
 }
 
 const TOKEN_KEY = '_amp_admin_token';
@@ -46,6 +52,7 @@ const EMPTY: AgentSettings = {
   suggestions: [],
   quickLinks: [],
   contactMethods: [],
+  enabledTools: [],
 };
 
 const labelCls = 'block text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
@@ -60,6 +67,7 @@ export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState('');
   const [settings, setSettings] = useState<AgentSettings>(EMPTY);
+  const [tools, setTools] = useState<ToolSpec[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -90,8 +98,14 @@ export default function AdminPage() {
         suggestions: Array.isArray(d.suggestions) ? d.suggestions : [],
         quickLinks: Array.isArray(d.quickLinks) ? d.quickLinks : [],
         contactMethods: Array.isArray(d.contactMethods) ? d.contactMethods : [],
+        enabledTools: Array.isArray(d.enabledTools) ? d.enabledTools : [],
       });
       setLoaded(true);
+      // Pull the gateway tool catalog (best-effort; empty if the gateway is down).
+      fetch('/api/tools', { headers: { authorization: `Bearer ${tok}`, accept: 'application/json' } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((t) => setTools(Array.isArray(t?.data) ? t.data : []))
+        .catch(() => setTools([]));
     } catch {
       setNote({ kind: 'err', text: 'Network error loading settings.' });
     } finally {
@@ -342,6 +356,52 @@ export default function AdminPage() {
             </div>
           )}
         />
+
+        {/* Tools (MCP gateway, Phase 2) */}
+        <section className="space-y-3 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] p-5">
+          <div>
+            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Tools</h2>
+            <p className="text-[12px] text-[var(--text-muted)]">
+              Tools the agent may call (Nemo MCP gateway). Each call is guardrailed, credit-metered, and audited
+              server-side. Off by default — the agent stays pure-RAG.
+            </p>
+          </div>
+          {tools.length === 0 ? (
+            <p className="text-[13px] text-[var(--text-muted)]">
+              No tools available — the gateway is unreachable from this agent key, or none are enabled for it.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {tools.map((t) => {
+                const on = settings.enabledTools.includes(t.id);
+                return (
+                  <label
+                    key={t.id}
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--border-light)] px-3 py-2 transition hover:bg-[var(--surface-hover)]"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={on}
+                      onChange={(e) =>
+                        setSettings((s) => ({
+                          ...s,
+                          enabledTools: e.target.checked
+                            ? [...s.enabledTools, t.id]
+                            : s.enabledTools.filter((id) => id !== t.id),
+                        }))
+                      }
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-medium text-[var(--text-primary)]">{t.title || t.id}</span>
+                      <span className="block text-[12px] text-[var(--text-muted)]">{t.description}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <div className="flex items-center gap-3 pb-12">
           <button type="button" onClick={save} disabled={busy} className={btnPrimary}>

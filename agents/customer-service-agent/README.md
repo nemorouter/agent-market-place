@@ -135,6 +135,21 @@ The system prompt + model edits flow straight into `/api/chat`. All in
 [`lib/settings.ts`](lib/settings.ts) + [`app/admin/page.tsx`](app/admin/page.tsx);
 the table ships in [`supabase/migration.sql`](supabase/migration.sql).
 
+## Tools — the Nemo MCP gateway (Phase 2)
+The agent can call **gateway tools** on top of its own RAG. Tools are **off by default**
+(pure RAG); enable them per agent in **`/admin` → Tools**, which lists the tools your
+`sk-nemo` key can see (`GET /v1/mcp/tools`). When the chat route sees enabled tools, it
+runs a **bounded tool-decision loop** ([`lib/tools.ts`](lib/tools.ts) `runToolLoop`):
+the model picks a tool → the gateway executes it (guardrail → reserve credits → run →
+settle → audit, all server-side) → the result is folded into the answer's context, then
+the final answer streams. Tool steps surface live in the widget ("Using …").
+
+Everything is **graceful**: an unreachable gateway, an unsupported model, or a tool
+error → the agent simply answers without tools. The agent reuses its **one `sk-nemo`
+key** for tools too — one bill, one ledger, per-key limits (no new auth, no new API).
+The gateway itself lives in nemo-backend; this app is only a **consumer**. Seed defaults
+with `TOOLS_ENABLED=nemo_docs_search`; `/admin` overrides at runtime.
+
 ## Personalization — "Hello Guru" for signed-in visitors
 Off by default (anonymous). Turn it on with **env vars, not code** — so 1000 forks
 each enable it the same way. The widget calls a same-origin `GET /api/session`,
@@ -216,6 +231,7 @@ app/admin/page.tsx    operator config dashboard (token-gated; edits all settings
 app/api/chat/route.ts public chat: Layers 1-3 → identity → settings → retrieve → stream from Nemo
 app/api/session/route.ts who-is-the-visitor (browser-safe identity for the greeting)
 app/api/config/route.ts read (public projection) / write (admin) the editable settings
+app/api/tools/route.ts  admin-gated MCP gateway tool catalog (for the /admin Tools UI)
 app/api/ingest/route.ts admin-gated re-index
 Dockerfile            Next standalone image (Cloud Run / ACA / any container host)
 scripts/deploy.sh     one-command deploy: local | gcp (today) | azure/aws (tomorrow)
@@ -225,6 +241,7 @@ scripts/env-to-yaml.py  .env.<env> → Cloud Run --env-vars-file (comma-safe)
 lib/nemo.ts           the ONLY model client — guardrails/routing/credits live here
 lib/retrieval.ts      pgvector search (audience-scoped when signed in; extend: filters/hybrid)
 lib/identity.ts       pluggable login layer (none|jwt|header|introspect|custom)
+lib/tools.ts          MCP gateway client + bounded tool-use loop (Phase 2 consumer)
 lib/settings.ts       operator-editable settings (env defaults ← Supabase overlay)
 lib/ingest.ts         docs + website → chunks → embeddings → Supabase
 lib/security.ts       Layers 1-3

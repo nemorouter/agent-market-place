@@ -43,6 +43,11 @@ contact_methods:
   - { type: email, label: Email support, value: support@acme.com }
   - { type: url,   label: Contact us,    value: /contact }
 
+# Tools (Nemo MCP gateway, Phase 2) — gateway tool ids the agent may call. OFF by
+# default (pure RAG). Editable from /admin (lists GET /v1/mcp/tools for your key).
+# Each call is guardrailed + credit-metered + audited server-side by the gateway.
+enabled_tools: []   # e.g. [ nemo_docs_search ]
+
 # Optional: Nemo guardrail ids to apply per-request, on top of the key's defaults.
 guardrails: []
 

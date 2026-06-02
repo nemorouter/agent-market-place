@@ -22,6 +22,7 @@ function settings(over: Partial<AgentSettings> = {}): AgentSettings {
     suggestions: ['How does pricing work?'],
     quickLinks: [{ label: 'Docs', href: '/docs' }],
     contactMethods: [{ type: 'phone', label: 'Call us', value: '+1 (555) 010-2030' }],
+    enabledTools: [],
     ...over,
   };
 }
