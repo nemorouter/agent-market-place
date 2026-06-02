@@ -70,10 +70,28 @@ create table if not exists public.agent_config (
   updated_at timestamptz not null default now()
 );
 
+-- ── Tool credentials vault (agent-infra-only; ciphertext at rest) ────────────
+-- The customer's OWN tool secrets (e.g. a Slack token), sealed with AES-256-GCM
+-- by lib/vault.ts using TOOL_VAULT_KEY — a key that lives ONLY in this agent's env.
+-- We store ONLY the sealed blob (ciphertext/iv/tag); the plaintext NEVER touches
+-- this table, and nemo-backend never sees the key. Even a full dump of this table
+-- is useless without the agent's env key. Additive + idempotent.
+create table if not exists public.tool_credentials (
+  agent_id   text not null,
+  tool_id    text not null,
+  ciphertext text not null,
+  iv         text not null,
+  tag        text not null,
+  updated_at timestamptz not null default now(),
+  primary key (agent_id, tool_id)
+);
+
 -- ── RLS: lock everything down ────────────────────────────────────────────────
 -- The app uses the service-role key server-side (bypasses RLS); the public anon
 -- key gets NO direct table access. All reads/writes go through this app's /api/*.
-alter table public.kb_chunks     enable row level security;
-alter table public.chat_messages enable row level security;
-alter table public.agent_config  enable row level security;
--- (Intentionally no permissive policies — anon cannot select/insert directly.)
+alter table public.kb_chunks       enable row level security;
+alter table public.chat_messages   enable row level security;
+alter table public.agent_config    enable row level security;
+alter table public.tool_credentials enable row level security;
+-- (Intentionally no permissive policies — anon cannot select/insert directly.
+--  tool_credentials is doubly protected: RLS here + the blob is encrypted at rest.)

@@ -150,6 +150,15 @@ key** for tools too — one bill, one ledger, per-key limits (no new auth, no ne
 The gateway itself lives in nemo-backend; this app is only a **consumer**. Seed defaults
 with `TOOLS_ENABLED=nemo_docs_search`; `/admin` overrides at runtime.
 
+**Credential vault (agent-infra-only).** For tools that need a secret (an API token),
+the operator pastes it in **`/admin` → Tools**; it's sealed with **AES-256-GCM** by
+[`lib/vault.ts`](lib/vault.ts) using `TOOL_VAULT_KEY` — a key that lives **only in this
+agent's env**. Only the **ciphertext** is stored (in the agent's own Supabase,
+`tool_credentials`); nemo-backend never holds the key or the secret. At tool time the
+agent **decrypts** and passes the secret to the gateway for **one transient call** — the
+gateway uses it and never stores or logs it. A DB dump alone is useless without the env
+key, and no other agent (or the platform) can decrypt it.
+
 ## Personalization — "Hello Guru" for signed-in visitors
 Off by default (anonymous). Turn it on with **env vars, not code** — so 1000 forks
 each enable it the same way. The widget calls a same-origin `GET /api/session`,
@@ -232,6 +241,7 @@ app/api/chat/route.ts public chat: Layers 1-3 → identity → settings → retr
 app/api/session/route.ts who-is-the-visitor (browser-safe identity for the greeting)
 app/api/config/route.ts read (public projection) / write (admin) the editable settings
 app/api/tools/route.ts  admin-gated MCP gateway tool catalog (for the /admin Tools UI)
+app/api/tool-credentials/route.ts admin-gated set/clear/status of sealed tool secrets
 app/api/ingest/route.ts admin-gated re-index
 Dockerfile            Next standalone image (Cloud Run / ACA / any container host)
 scripts/deploy.sh     one-command deploy: local | gcp (today) | azure/aws (tomorrow)
@@ -242,6 +252,8 @@ lib/nemo.ts           the ONLY model client — guardrails/routing/credits live 
 lib/retrieval.ts      pgvector search (audience-scoped when signed in; extend: filters/hybrid)
 lib/identity.ts       pluggable login layer (none|jwt|header|introspect|custom)
 lib/tools.ts          MCP gateway client + bounded tool-use loop (Phase 2 consumer)
+lib/vault.ts          agent-infra-only credential vault (AES-256-GCM, TOOL_VAULT_KEY)
+lib/credentials.ts    seal/store/open tool secrets (ciphertext-only at rest)
 lib/settings.ts       operator-editable settings (env defaults ← Supabase overlay)
 lib/ingest.ts         docs + website → chunks → embeddings → Supabase
 lib/security.ts       Layers 1-3

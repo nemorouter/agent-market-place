@@ -61,18 +61,20 @@ export async function listTools(signal?: AbortSignal): Promise<ToolSpec[]> {
   }
 }
 
-/** POST /v1/mcp/tools/{id}/call — execute one tool. Never throws → {ok:false}. */
+/** POST /v1/mcp/tools/{id}/call — execute one tool. Never throws → {ok:false}.
+ *  `opts.credential` is a TRANSIENT per-call secret (opened from the agent vault):
+ *  it rides in the body for this one call, the gateway uses it and never stores it. */
 export async function callTool(
   toolId: string,
   args: Record<string, unknown>,
-  signal?: AbortSignal,
+  opts?: { credential?: string; signal?: AbortSignal },
 ): Promise<ToolResult> {
   try {
     const res = await fetch(`${BASE}/v1/mcp/tools/${encodeURIComponent(toolId)}/call`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ arguments: args }),
-      signal,
+      body: JSON.stringify({ arguments: args, ...(opts?.credential ? { credential: opts.credential } : {}) }),
+      signal: opts?.signal,
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (res.ok && json.ok === true) {

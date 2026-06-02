@@ -11,6 +11,7 @@ import { loadSettings } from '@/lib/settings';
 import { retrieve } from '@/lib/retrieval';
 import { chatStream, chatComplete, NemoError, type ChatMessage } from '@/lib/nemo';
 import { listTools, callTool, runToolLoop, type ToolStepEvent } from '@/lib/tools';
+import { getCredential, listCredentialedToolIds } from '@/lib/credentials';
 import { originAllowed, rateLimit, verifyCaptcha, clientIp, captchaTriggerCount } from '@/lib/security';
 import { resolveIdentity, buildPersona } from '@/lib/identity';
 
@@ -96,6 +97,8 @@ export async function POST(req: Request): Promise<Response> {
         const catalog = await listTools();
         const enabled = catalog.filter((t) => settings.enabledTools.includes(t.id));
         if (enabled.length) {
+          // Which enabled tools have a stored credential (sealed in the agent vault).
+          const credIds = new Set(await listCredentialedToolIds(cfg.id));
           const loop = await runToolLoop({
             messages: [
               { role: 'system', content: `${settings.systemPrompt}\n\nYou may call tools when they help answer. Prefer the provided context first.` },
@@ -105,7 +108,12 @@ export async function POST(req: Request): Promise<Response> {
             maxSteps: cfg.maxSteps,
             chat: (msgs, tools) =>
               chatComplete({ model: settings.model, messages: msgs, tools, guardrails: cfg.guardrails, sessionId: session }),
-            call: (id, args) => callTool(id, args),
+            // Open the sealed credential (agent-infra key) ONLY at call time and pass it
+            // transiently to the gateway; it is never stored or logged here.
+            call: async (id, args) => {
+              const credential = credIds.has(id) ? await getCredential(cfg.id, id) : null;
+              return callTool(id, args, credential ? { credential } : undefined);
+            },
             onStep: (e) => {
               const i = toolSteps.findIndex((s) => s.tool === e.tool);
               if (i >= 0) toolSteps[i] = e;

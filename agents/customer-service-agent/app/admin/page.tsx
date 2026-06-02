@@ -68,6 +68,8 @@ export default function AdminPage() {
   const [tokenInput, setTokenInput] = useState('');
   const [settings, setSettings] = useState<AgentSettings>(EMPTY);
   const [tools, setTools] = useState<ToolSpec[]>([]);
+  const [vault, setVault] = useState<{ vaultConfigured: boolean; toolIds: string[] }>({ vaultConfigured: false, toolIds: [] });
+  const [credInput, setCredInput] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -106,6 +108,11 @@ export default function AdminPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((t) => setTools(Array.isArray(t?.data) ? t.data : []))
         .catch(() => setTools([]));
+      // Pull vault status (which tools have a stored credential + whether the vault is on).
+      fetch('/api/tool-credentials', { headers: { authorization: `Bearer ${tok}`, accept: 'application/json' } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((v) => v && setVault({ vaultConfigured: Boolean(v.vaultConfigured), toolIds: Array.isArray(v.toolIds) ? v.toolIds : [] }))
+        .catch(() => {});
     } catch {
       setNote({ kind: 'err', text: 'Network error loading settings.' });
     } finally {
@@ -154,6 +161,57 @@ export default function AdminPage() {
       setNote({ kind: 'ok', text: 'Saved. The widget picks this up on its next open.' });
     } catch {
       setNote({ kind: 'err', text: 'Network error saving settings.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setCred = async (toolId: string) => {
+    if (!token) return;
+    const secret = credInput[toolId];
+    if (!secret) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/tool-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ toolId, secret }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNote({ kind: 'err', text: d?.message || d?.error || `Save failed (${res.status}).` });
+        return;
+      }
+      setCredInput((s) => ({ ...s, [toolId]: '' }));
+      setVault((v) => ({ ...v, toolIds: v.toolIds.includes(toolId) ? v.toolIds : [...v.toolIds, toolId] }));
+      setNote({ kind: 'ok', text: `Credential stored for ${toolId} (encrypted at rest).` });
+    } catch {
+      setNote({ kind: 'err', text: 'Network error saving credential.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clearCred = async (toolId: string) => {
+    if (!token) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/tool-credentials', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ toolId }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setNote({ kind: 'err', text: d?.message || `Clear failed (${res.status}).` });
+        return;
+      }
+      setVault((v) => ({ ...v, toolIds: v.toolIds.filter((id) => id !== toolId) }));
+      setNote({ kind: 'ok', text: `Credential cleared for ${toolId}.` });
+    } catch {
+      setNote({ kind: 'err', text: 'Network error clearing credential.' });
     } finally {
       setBusy(false);
     }
@@ -374,29 +432,67 @@ export default function AdminPage() {
             <div className="space-y-2">
               {tools.map((t) => {
                 const on = settings.enabledTools.includes(t.id);
+                const hasCred = vault.toolIds.includes(t.id);
                 return (
-                  <label
-                    key={t.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--border-light)] px-3 py-2 transition hover:bg-[var(--surface-hover)]"
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={on}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          enabledTools: e.target.checked
-                            ? [...s.enabledTools, t.id]
-                            : s.enabledTools.filter((id) => id !== t.id),
-                        }))
-                      }
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-[13px] font-medium text-[var(--text-primary)]">{t.title || t.id}</span>
-                      <span className="block text-[12px] text-[var(--text-muted)]">{t.description}</span>
-                    </span>
-                  </label>
+                  <div key={t.id} className="rounded-lg border border-[var(--border-light)] px-3 py-2.5">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={on}
+                        onChange={(e) =>
+                          setSettings((s) => ({
+                            ...s,
+                            enabledTools: e.target.checked
+                              ? [...s.enabledTools, t.id]
+                              : s.enabledTools.filter((id) => id !== t.id),
+                          }))
+                        }
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-medium text-[var(--text-primary)]">{t.title || t.id}</span>
+                        <span className="block text-[12px] text-[var(--text-muted)]">{t.description}</span>
+                      </span>
+                    </label>
+
+                    {/* Credential (vault) — only meaningful when the tool is enabled. */}
+                    {on && (
+                      <div className="mt-2.5 border-t border-[var(--border-subtle)] pt-2.5 pl-7">
+                        {!vault.vaultConfigured ? (
+                          <p className="text-[11px] text-[var(--text-muted)]">
+                            Set <code className="rounded bg-[var(--surface-hover)] px-1">TOOL_VAULT_KEY</code> in this
+                            agent&apos;s env to store a credential for this tool.
+                          </p>
+                        ) : hasCred ? (
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[12px] text-[var(--nemo-indigo)]">🔒 Credential stored (encrypted)</span>
+                            <button type="button" onClick={() => clearCred(t.id)} className={btnGhost}>
+                              Clear
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="password"
+                              autoComplete="off"
+                              placeholder="Paste tool credential (e.g. API token)"
+                              value={credInput[t.id] ?? ''}
+                              onChange={(e) => setCredInput((s) => ({ ...s, [t.id]: e.target.value }))}
+                              className={`${inputCls} text-[12px]`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setCred(t.id)}
+                              disabled={busy || !(credInput[t.id] ?? '').trim()}
+                              className={btnPrimary}
+                            >
+                              Set
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
