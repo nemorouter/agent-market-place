@@ -58,16 +58,20 @@ function coerceSources(raw: unknown): WebSource[] {
  */
 export async function webSearch(
   query: string,
-  opts?: { site?: string; signal?: AbortSignal },
+  opts?: { site?: string; provider?: string; signal?: AbortSignal },
 ): Promise<WebSearchOutcome> {
   if (!query || !query.trim()) return EMPTY;
   const site = opts?.site?.trim();
   // Scope to the site with Google's `site:` operator. Don't double-prefix if the
   // caller already included it.
   const scoped = site && !/\bsite:/i.test(query) ? `site:${site} ${query.trim()}` : query.trim();
+  const provider = opts?.provider?.trim();
+  const toolArgs: Record<string, unknown> = { query: scoped };
+  // Forward the operator-selected backend (google|openai); omit to use the gateway default.
+  if (provider === 'google' || provider === 'openai') toolArgs.provider = provider;
   let res;
   try {
-    res = await callTool(WEB_SEARCH_TOOL_ID, { query: scoped }, opts?.signal ? { signal: opts.signal } : undefined);
+    res = await callTool(WEB_SEARCH_TOOL_ID, toolArgs, opts?.signal ? { signal: opts.signal } : undefined);
   } catch {
     return EMPTY; // callTool already never-throws, but belt-and-suspenders
   }

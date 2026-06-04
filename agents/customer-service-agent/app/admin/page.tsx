@@ -37,6 +37,7 @@ interface AgentSettings {
   enabledTools: string[];
   webSearchEnabled: boolean;
   webSearchSite: string;
+  webSearchProvider: string;
 }
 interface ToolSpec {
   id: string;
@@ -57,6 +58,7 @@ const EMPTY: AgentSettings = {
   enabledTools: [],
   webSearchEnabled: true,
   webSearchSite: '',
+  webSearchProvider: '',
 };
 
 const labelCls = 'block text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
@@ -122,6 +124,7 @@ export default function AdminPage() {
         enabledTools: Array.isArray(d.enabledTools) ? d.enabledTools : [],
         webSearchEnabled: d.webSearchEnabled ?? true,
         webSearchSite: d.webSearchSite ?? '',
+        webSearchProvider: d.webSearchProvider ?? '',
       });
       setLoaded(true);
       authFetch('/api/tools')
@@ -713,6 +716,23 @@ export default function AdminPage() {
               A bare host like <code className="rounded bg-[var(--surface-hover)] px-1">nemorouter.ai</code>. Applied as
               Google&apos;s <code className="rounded bg-[var(--surface-hover)] px-1">site:</code> filter. Defaults to your
               <code className="rounded bg-[var(--surface-hover)] px-1">WEBSITE_URL</code> domain.
+            </p>
+          </div>
+          <div>
+            <label className={labelCls}>Search backend</label>
+            <select
+              value={settings.webSearchProvider}
+              onChange={(e) => setSettings((s) => ({ ...s, webSearchProvider: e.target.value }))}
+              className={inputCls}
+              disabled={!settings.webSearchEnabled}
+            >
+              <option value="">Server default</option>
+              <option value="google">Google (Gemini grounding)</option>
+              <option value="openai">OpenAI (web search)</option>
+            </select>
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+              Which model performs the site search. Google grounding is the proven default; OpenAI web search is
+              selectable. The search runs server-side in the Nemo gateway.
             </p>
           </div>
         </section>

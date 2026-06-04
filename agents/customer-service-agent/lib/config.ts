@@ -53,6 +53,9 @@ export interface WebSearchConfig {
    *  `site:` operator — "if it's not in the docs, search OUR website". Empty = whole web.
    *  Defaults to the domain of WEBSITE_URL so a fork auto-scopes to its own site. */
   site: string;
+  /** Which gateway web-search backend to request: '' (server default) | 'google'
+   *  (Gemini grounding) | 'openai' (OpenAI web_search_options). Operator-selectable. */
+  provider: string;
 }
 
 /** Extract a bare host ("nemorouter.ai") from a URL or host string. '' on junk. */
@@ -169,6 +172,8 @@ export function loadConfig(): AgentConfig {
       // "Not in the docs? search our website." Defaults to the agent's own WEBSITE_URL
       // domain (e.g. nemorouter.ai); set WEB_SEARCH_SITE='' to allow whole-web search.
       site: env.WEB_SEARCH_SITE != null ? domainOf(env.WEB_SEARCH_SITE) : domainOf(env.WEBSITE_URL),
+      // '' = let the gateway pick (its MCP_WEB_SEARCH_PROVIDER); else force google|openai.
+      provider: (env.WEB_SEARCH_PROVIDER || '').trim().toLowerCase(),
     },
   };
 }

@@ -25,6 +25,7 @@ function settings(over: Partial<AgentSettings> = {}): AgentSettings {
     enabledTools: [],
     webSearchEnabled: true,
     webSearchSite: '',
+    webSearchProvider: '',
     ...over,
   };
 }

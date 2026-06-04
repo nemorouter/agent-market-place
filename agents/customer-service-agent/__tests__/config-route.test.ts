@@ -15,6 +15,7 @@ const FULL: AgentSettings = {
   enabledTools: [],
   webSearchEnabled: true,
   webSearchSite: 'nemorouter.ai',
+  webSearchProvider: '',
 };
 
 const loadSettings = vi.fn(async () => FULL);

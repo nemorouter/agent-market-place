@@ -76,6 +76,22 @@ describe('webSearch', () => {
     expect(mockCall).toHaveBeenCalledWith(WEB_SEARCH_TOOL_ID, { query: 'site:nemorouter.ai refund policy' }, undefined);
   });
 
+  it('forwards an explicit provider (openai) to the gateway tool', async () => {
+    mockCall.mockResolvedValueOnce({ ok: true, result: { answer: 'a', sources: [] } });
+    await webSearch('refund policy', { site: 'nemorouter.ai', provider: 'openai' });
+    expect(mockCall).toHaveBeenCalledWith(
+      WEB_SEARCH_TOOL_ID,
+      { query: 'site:nemorouter.ai refund policy', provider: 'openai' },
+      undefined,
+    );
+  });
+
+  it('ignores an unknown provider (falls back to gateway default)', async () => {
+    mockCall.mockResolvedValueOnce({ ok: true, result: { answer: 'a', sources: [] } });
+    await webSearch('x', { provider: 'bing' });
+    expect(mockCall).toHaveBeenCalledWith(WEB_SEARCH_TOOL_ID, { query: 'x' }, undefined);
+  });
+
   it('does not double-prefix when the query already has site:', async () => {
     mockCall.mockResolvedValueOnce({ ok: true, result: { answer: 'a', sources: [] } });
     await webSearch('site:foo.com hi', { site: 'nemorouter.ai' });
