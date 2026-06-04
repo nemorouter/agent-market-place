@@ -233,9 +233,11 @@ export async function POST(req: Request): Promise<Response> {
     const knownCost = headerCost + toolCostUsd + webCostUsd;
     if (knownCost > 0) headers.set('x-nemo-response-cost', String(knownCost));
     headers.set('x-nemo-citations', Buffer.from(JSON.stringify(citations)).toString('base64'));
-    // Confidence the KB answered (drives the widget badge + 👎 → web-search escalation).
-    // 'high' if web search supplied the answer (it's grounded in live sources).
-    const answerConfidence = webRan ? { level: 'high' as const, score: confidence.score, webSearched: true } : { ...confidence, webSearched: false };
+    // Two ORTHOGONAL signals (don't conflate): `level` = how well the KB matched the
+    // question (drives 👎 → web-search escalation + journey analytics); `webSearched` =
+    // whether we escalated to the live web. A web-searched off-topic answer stays
+    // low-confidence (the KB didn't have it) but flags webSearched=true.
+    const answerConfidence = { level: confidence.level, score: confidence.score, webSearched: webRan };
     headers.set('x-nemo-confidence', answerConfidence.level);
 
     // Metadata frames prepended before the answer (order-independent — the widget attaches
