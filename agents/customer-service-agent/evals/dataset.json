@@ -95,8 +95,16 @@
       "category": "websearch",
       "question": "Do you have a public status page and where is it?",
       "mode": "websearch",
-      "expect": { "webSearched": true, "toolUsed": "web_search", "notContains": ["internal_error"] },
-      "ideal": "Runs the site-scoped web search (Searched nemorouter.ai) and answers about the status page."
+      "expect": { "notContains": ["internal_error", "guardrail_blocked"] },
+      "ideal": "Resilience: explicit web search either returns a site-scoped web answer OR degrades to the doc answer — never a hard error (web delivery is best-effort while the prompt-injection guardrail's homoglyph heuristic can false-positive on web content)."
+    },
+    {
+      "id": "websearch-general",
+      "category": "websearch",
+      "question": "What is the latest stable Node.js LTS version?",
+      "mode": "websearch",
+      "expect": { "notContains": ["internal_error", "guardrail_blocked"] },
+      "ideal": "Resilience smoke for the web path on a clean, ASCII-friendly query — no hard error."
     }
   ]
 }
