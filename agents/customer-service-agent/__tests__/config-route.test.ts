@@ -13,6 +13,8 @@ const FULL: AgentSettings = {
   quickLinks: [{ label: 'Docs', href: '/docs' }],
   contactMethods: [{ type: 'phone', label: 'Call', value: '+1 (555) 010-2030' }],
   enabledTools: [],
+  webSearchEnabled: true,
+  webSearchSite: 'nemorouter.ai',
 };
 
 const loadSettings = vi.fn(async () => FULL);

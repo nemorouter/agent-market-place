@@ -23,6 +23,8 @@ function settings(over: Partial<AgentSettings> = {}): AgentSettings {
     quickLinks: [{ label: 'Docs', href: '/docs' }],
     contactMethods: [{ type: 'phone', label: 'Call us', value: '+1 (555) 010-2030' }],
     enabledTools: [],
+    webSearchEnabled: true,
+    webSearchSite: '',
     ...over,
   };
 }
@@ -163,6 +165,26 @@ describe('mergeSettings — overlay precedence (Supabase over env)', () => {
     });
     expect(merged.quickLinks).toEqual([{ label: 'Good', href: '/ok' }]);
     expect(merged.contactMethods).toEqual([]); // the only entry was unsafe
+  });
+  it('overlays web-search enabled + normalizes the site host (admin → env)', () => {
+    const base = settings({ webSearchEnabled: true, webSearchSite: 'nemorouter.ai' });
+    const merged = mergeSettings(base, { webSearchEnabled: false, webSearchSite: 'https://www.example.com/docs' });
+    expect(merged.webSearchEnabled).toBe(false);
+    expect(merged.webSearchSite).toBe('example.com'); // scheme + www + path stripped
+  });
+  it('empty-string webSearchSite is a deliberate "whole web" override (not ignored)', () => {
+    const base = settings({ webSearchSite: 'nemorouter.ai' });
+    expect(mergeSettings(base, { webSearchSite: '' }).webSearchSite).toBe('');
+    // undefined, by contrast, keeps the base
+    expect(mergeSettings(base, {}).webSearchSite).toBe('nemorouter.ai');
+  });
+});
+
+describe('publicSettings — web-search settings are server-only (never leak)', () => {
+  it('omits webSearchEnabled + webSearchSite from the public projection', () => {
+    const wire = JSON.stringify(publicSettings(settings({ webSearchSite: 'nemorouter.ai' })));
+    expect(wire).not.toContain('webSearchSite');
+    expect(wire).not.toContain('webSearchEnabled');
   });
 });
 

@@ -35,6 +35,8 @@ interface AgentSettings {
   quickLinks: QuickLink[];
   contactMethods: ContactMethod[];
   enabledTools: string[];
+  webSearchEnabled: boolean;
+  webSearchSite: string;
 }
 interface ToolSpec {
   id: string;
@@ -53,6 +55,8 @@ const EMPTY: AgentSettings = {
   quickLinks: [],
   contactMethods: [],
   enabledTools: [],
+  webSearchEnabled: true,
+  webSearchSite: '',
 };
 
 const labelCls = 'block text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
@@ -116,6 +120,8 @@ export default function AdminPage() {
         quickLinks: Array.isArray(d.quickLinks) ? d.quickLinks : [],
         contactMethods: Array.isArray(d.contactMethods) ? d.contactMethods : [],
         enabledTools: Array.isArray(d.enabledTools) ? d.enabledTools : [],
+        webSearchEnabled: d.webSearchEnabled ?? true,
+        webSearchSite: d.webSearchSite ?? '',
       });
       setLoaded(true);
       authFetch('/api/tools')
@@ -673,6 +679,42 @@ export default function AdminPage() {
               })}
             </div>
           )}
+        </section>
+
+        {/* Website search fallback */}
+        <section className="space-y-3 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] p-5">
+          <div>
+            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Website search fallback</h2>
+            <p className="text-[12px] text-[var(--text-muted)]">
+              When the answer isn&apos;t in your knowledge base (low confidence) or a visitor clicks &ldquo;Search the
+              web&rdquo;, the agent runs a Google search via the gateway. Scope it to a single website to keep answers
+              on-brand — &ldquo;not in the docs? search our site&rdquo;.
+            </p>
+          </div>
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={settings.webSearchEnabled}
+              onChange={(e) => setSettings((s) => ({ ...s, webSearchEnabled: e.target.checked }))}
+            />
+            <span className="text-[13px] text-[var(--text-primary)]">Enable website / web search fallback</span>
+          </label>
+          <div>
+            <label className={labelCls}>Restrict to website (optional)</label>
+            <input
+              type="text"
+              placeholder="nemorouter.ai — leave blank to search the whole web"
+              value={settings.webSearchSite}
+              onChange={(e) => setSettings((s) => ({ ...s, webSearchSite: e.target.value }))}
+              className={inputCls}
+              disabled={!settings.webSearchEnabled}
+            />
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+              A bare host like <code className="rounded bg-[var(--surface-hover)] px-1">nemorouter.ai</code>. Applied as
+              Google&apos;s <code className="rounded bg-[var(--surface-hover)] px-1">site:</code> filter. Defaults to your
+              <code className="rounded bg-[var(--surface-hover)] px-1">WEBSITE_URL</code> domain.
+            </p>
+          </div>
         </section>
 
         <div className="flex items-center gap-3 pb-12">

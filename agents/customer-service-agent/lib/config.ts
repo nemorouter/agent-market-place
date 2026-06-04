@@ -39,6 +39,34 @@ export interface IdentityConfig {
   docAudienceAttr?: string;
 }
 
+/** Web-search fallback — escalate to the gateway `web_search` tool when the KB
+ *  can't answer (low confidence) or the user explicitly asks to search the web. */
+export interface WebSearchConfig {
+  /** Master switch. When off, no web-search escalation ever runs. */
+  enabled: boolean;
+  /** Auto-run web search when retrieval confidence is LOW (else only on explicit request). */
+  autoOnLowConfidence: boolean;
+  /** Confidence thresholds (topSimilarity): >= high → 'high', < low → 'low'. */
+  confidenceHigh: number;
+  confidenceLow: number;
+  /** Restrict the fallback to a single SITE (e.g. "nemorouter.ai") via the Google
+   *  `site:` operator — "if it's not in the docs, search OUR website". Empty = whole web.
+   *  Defaults to the domain of WEBSITE_URL so a fork auto-scopes to its own site. */
+  site: string;
+}
+
+/** Extract a bare host ("nemorouter.ai") from a URL or host string. '' on junk. */
+export function domainOf(v: string | undefined): string {
+  if (!v || !v.trim()) return '';
+  let h = v.trim();
+  try {
+    h = new URL(h.includes('://') ? h : `https://${h}`).hostname;
+  } catch {
+    return '';
+  }
+  return h.replace(/^www\./i, '');
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -55,6 +83,7 @@ export interface AgentConfig {
   guardrails: string[];
   security: SecurityConfig;
   identity: IdentityConfig;
+  webSearch: WebSearchConfig;
 }
 
 const list = (v: string | undefined, fallback: string[] = []): string[] =>
@@ -126,6 +155,20 @@ export function loadConfig(): AgentConfig {
       greet: bool(env.IDENTITY_GREET, true),
       linksTemplate: jsonLinks(env.IDENTITY_LINKS),
       docAudienceAttr: env.IDENTITY_DOC_AUDIENCE_ATTR,
+    },
+    webSearch: {
+      // Defaults ON + auto: the whole point is to rescue unanswered questions. It
+      // still degrades gracefully when the gateway tool isn't deployed (lib/web-search.ts).
+      enabled: bool(env.WEB_SEARCH_ENABLED, true),
+      autoOnLowConfidence: bool(env.WEB_SEARCH_AUTO_ON_LOW_CONFIDENCE, true),
+      // Calibrated for text-embedding-005: on-topic KB matches cluster ~0.55-0.65,
+      // off-topic ~0.35. high>=0.55 → "high"; <0.45 → "low" (auto web-search). Tune
+      // per embedding model via env — a different model shifts the whole distribution.
+      confidenceHigh: num(env.CONFIDENCE_HIGH, 0.55),
+      confidenceLow: num(env.CONFIDENCE_LOW, 0.45),
+      // "Not in the docs? search our website." Defaults to the agent's own WEBSITE_URL
+      // domain (e.g. nemorouter.ai); set WEB_SEARCH_SITE='' to allow whole-web search.
+      site: env.WEB_SEARCH_SITE != null ? domainOf(env.WEB_SEARCH_SITE) : domainOf(env.WEBSITE_URL),
     },
   };
 }

@@ -23,6 +23,9 @@ import {
   Phone,
   Mail,
   Link2,
+  ThumbsUp,
+  ThumbsDown,
+  Globe,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -217,6 +220,14 @@ interface ChatMessage {
   content: string;
   steps?: ToolStep[];
   citations?: Citation[];
+  /** Answer confidence the KB matched ('high'|'medium'|'low'), surfaced by the server. */
+  confidence?: 'high' | 'medium' | 'low';
+  /** True when this answer was grounded by a live web search. */
+  webSearched?: boolean;
+  /** The user question this answer responded to (for feedback + web re-ask). */
+  question?: string;
+  /** The visitor's rating once given (locks the buttons). */
+  feedback?: 'up' | 'down';
 }
 
 /* Minimal Web Speech API surface — the DOM lib ships these as `any`/absent
@@ -345,6 +356,15 @@ export function AskGuruWidget({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Stable per-conversation id — ties chat turns + feedback together server-side.
+  // Lazy init is fine here (ref, not render output) and must not read crypto at module load.
+  const sessionIdRef = useRef<string>('');
+  if (!sessionIdRef.current) {
+    sessionIdRef.current =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `s-${idRef.current}-${Math.floor(Math.random() * 1e9)}`;
+  }
   const lastQueryRef = useRef('');
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const voiceBaseRef = useRef('');
@@ -483,16 +503,19 @@ export function AskGuruWidget({
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: { mode?: 'websearch'; reuseHistory?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || streaming) return;
       lastQueryRef.current = trimmed;
 
       setError(null);
-      const userMsg: ChatMessage = { id: nextId(), role: 'user', content: trimmed };
       const assistantId = nextId();
-      const history = [...messages, userMsg];
-      setMessages([...history, { id: assistantId, role: 'assistant', content: '' }]);
+      // A "search the web" retry re-asks the SAME question without adding a new user
+      // bubble; a normal send appends the user turn.
+      const history = opts?.reuseHistory
+        ? messages.filter((m) => m.role !== 'assistant' || m.content)
+        : [...messages, { id: nextId(), role: 'user' as const, content: trimmed }];
+      setMessages([...history, { id: assistantId, role: 'assistant', content: '', question: trimmed }]);
       setInput('');
       setStreaming(true);
 
@@ -509,6 +532,8 @@ export function AskGuruWidget({
           headers: chatHeaders,
           body: JSON.stringify({
             messages: history.map(({ role, content }) => ({ role, content })),
+            sessionId: sessionIdRef.current,
+            ...(opts?.mode ? { mode: opts.mode } : {}),
           }),
           signal: controller.signal,
         });
@@ -563,6 +588,15 @@ export function AskGuruWidget({
                 setMessages((prev) =>
                   prev.map((m) => (m.id === assistantId ? { ...m, citations: list } : m)),
                 );
+              return;
+            }
+            if (json?.nemo_event === 'confidence') {
+              const level = json.level === 'high' || json.level === 'medium' || json.level === 'low' ? json.level : undefined;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, confidence: level, webSearched: json.webSearched === true } : m,
+                ),
+              );
               return;
             }
             if (json?.nemo_event === 'cost') {
@@ -621,6 +655,40 @@ export function AskGuruWidget({
     e.preventDefault();
     void send(input);
   };
+
+  // Record a 👍/👎 on an answer. Optimistic (locks the buttons immediately); the POST
+  // is fire-and-forget — feedback must never feel like it can fail to the visitor.
+  const submitFeedback = useCallback(
+    (m: ChatMessage, rating: 'up' | 'down') => {
+      if (m.feedback) return; // already rated
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, feedback: rating } : x)));
+      void fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating,
+          sessionId: sessionIdRef.current,
+          messageId: String(m.id),
+          question: m.question ?? '',
+          confidence: m.confidence ?? '',
+          webSearched: m.webSearched === true,
+        }),
+      }).catch(() => {
+        /* best-effort — never surface a feedback POST error to the visitor */
+      });
+    },
+    [],
+  );
+
+  // "Search the web" escalation — re-ask the same question through the web-search path.
+  const searchWeb = useCallback(
+    (m: ChatMessage) => {
+      const q = m.question || lastQueryRef.current;
+      if (!q || streaming) return;
+      void send(q, { mode: 'websearch', reuseHistory: true });
+    },
+    [send, streaming],
+  );
 
   // Interruptible (skill: `interruptible`) — let the user stop a streaming answer.
   const stop = () => abortRef.current?.abort();
@@ -1128,6 +1196,73 @@ export function AskGuruWidget({
                                 </div>
                               </div>
                             )}
+                            {/* Confidence + feedback row — only on a finished assistant answer. */}
+                            {m.role === 'assistant' &&
+                              m.content &&
+                              !(streaming && m.id === messages[messages.length - 1]?.id) && (
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                  {m.webSearched ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                                      <Globe className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                                      Web result
+                                    </span>
+                                  ) : m.confidence ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"
+                                      title="How well this matched the knowledge base"
+                                    >
+                                      <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+                                      {m.confidence === 'high'
+                                        ? 'High confidence'
+                                        : m.confidence === 'medium'
+                                          ? 'Medium confidence'
+                                          : 'Low confidence'}
+                                    </span>
+                                  ) : null}
+
+                                  {/* Thumbs up / down */}
+                                  <div className="ml-auto inline-flex items-center gap-0.5">
+                                    {m.feedback ? (
+                                      <span className="text-[10px] text-[var(--text-muted)]">
+                                        {m.feedback === 'up' ? 'Thanks for the feedback' : 'Thanks — we’ll improve this'}
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <button
+                                          type="button"
+                                          aria-label="Helpful"
+                                          onClick={() => submitFeedback(m, 'up')}
+                                          className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                        >
+                                          <ThumbsUp className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          aria-label="Not helpful"
+                                          onClick={() => submitFeedback(m, 'down')}
+                                          className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                        >
+                                          <ThumbsDown className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Escalate to web search when the answer was weak or marked unhelpful. */}
+                                  {!m.webSearched &&
+                                    (m.confidence === 'low' || m.feedback === 'down') && (
+                                      <button
+                                        type="button"
+                                        onClick={() => searchWeb(m)}
+                                        disabled={streaming}
+                                        className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                      >
+                                        <Globe className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                        Still not resolved? Search the web
+                                      </button>
+                                    )}
+                                </div>
+                              )}
                           </div>
                         </div>
                       ),
