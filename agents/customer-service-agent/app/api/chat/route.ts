@@ -15,6 +15,7 @@ import { listTools, callTool, runToolLoop, type ToolStepEvent } from '@/lib/tool
 import { getCredential, listCredentialedToolIds } from '@/lib/credentials';
 import { scoreConfidence } from '@/lib/confidence';
 import { webSearch } from '@/lib/web-search';
+import { logGap } from '@/lib/gaps';
 import {
   originAllowed,
   rateLimitAsync,
@@ -262,6 +263,13 @@ export async function POST(req: Request): Promise<Response> {
     // low-confidence (the KB didn't have it) but flags webSearched=true.
     const answerConfidence = { level: confidence.level, score: confidence.score, webSearched: webRan };
     headers.set('x-nemo-confidence', answerConfidence.level);
+
+    // CONTINUOUS LEARNING: when the KB couldn't confidently answer, log the question as a
+    // knowledge gap (fire-and-forget, off the hot path). The /admin gaps report ranks these
+    // so operators add the missing docs → re-ingest closes the loop.
+    if (question && confidence.level === 'low') {
+      void logGap(cfg.id, { question, confidence: confidence.level, webSearched: webRan });
+    }
 
     // Metadata frames prepended before the answer (order-independent — the widget attaches
     // them to the in-flight assistant message). Citations + known cost are known pre-stream.

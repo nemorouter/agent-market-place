@@ -78,6 +78,7 @@ export default function AdminPage() {
   const [vault, setVault] = useState<{ vaultConfigured: boolean; toolIds: string[] }>({ vaultConfigured: false, toolIds: [] });
   const [credInput, setCredInput] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
+  const [gaps, setGaps] = useState<Array<{ question: string; count: number; webSearchedRate: number }>>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   // Login UI state
@@ -131,6 +132,10 @@ export default function AdminPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((t) => setTools(Array.isArray(t?.data) ? t.data : []))
         .catch(() => setTools([]));
+      authFetch('/api/admin/gaps')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((g) => setGaps(Array.isArray(g?.gaps) ? g.gaps : []))
+        .catch(() => setGaps([]));
       authFetch('/api/tool-credentials')
         .then((r) => (r.ok ? r.json() : null))
         .then((v) => v && setVault({ vaultConfigured: Boolean(v.vaultConfigured), toolIds: Array.isArray(v.toolIds) ? v.toolIds : [] }))
@@ -735,6 +740,41 @@ export default function AdminPage() {
               selectable. The search runs server-side in the Nemo gateway.
             </p>
           </div>
+        </section>
+
+        {/* Knowledge gaps — continuous learning */}
+        <section className="space-y-3 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] p-5">
+          <div>
+            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Knowledge gaps</h2>
+            <p className="text-[12px] text-[var(--text-muted)]">
+              Questions the agent couldn&apos;t confidently answer from its knowledge base, ranked by frequency. Add
+              answers for the top items to your docs (or website), then re-index — that closes the loop.
+            </p>
+          </div>
+          {gaps.length === 0 ? (
+            <p className="text-[13px] text-[var(--text-muted)]">No gaps logged yet — the KB is answering confidently.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {gaps.slice(0, 15).map((g, i) => (
+                <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]">
+                  <span className="mt-0.5 shrink-0 rounded bg-[var(--surface-secondary)] px-1.5 text-[11px] font-semibold tabular-nums text-[var(--text-primary)]">
+                    {g.count}×
+                  </span>
+                  <span className="min-w-0">
+                    {g.question}
+                    {g.webSearchedRate > 0 && (
+                      <span className="ml-1 text-[11px] text-[var(--text-muted)]">
+                        (web tried {Math.round(g.webSearchedRate * 100)}%)
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button type="button" onClick={reindex} disabled={busy} className={btnGhost}>
+            Re-index knowledge base
+          </button>
         </section>
 
         <div className="flex items-center gap-3 pb-12">
