@@ -107,6 +107,24 @@ create index if not exists chat_feedback_agent_created_idx on public.chat_feedba
 -- Additive for existing deployments (table may predate the reason column).
 alter table public.chat_feedback add column if not exists reason text;
 
+-- ── Knowledge gaps (continuous learning) ────────────────────────────────────
+-- Auto-logged every time the agent can't confidently answer from its KB (low
+-- confidence). The /admin "Knowledge gaps" report groups these by normalized
+-- question and ranks by frequency so operators know exactly what docs to add →
+-- re-ingest closes the loop. `resolved` lets an operator dismiss an addressed gap.
+create table if not exists public.chat_gaps (
+  id            uuid primary key default gen_random_uuid(),
+  agent_id      text not null,
+  question      text not null,
+  question_norm text not null,       -- lowercased/cleaned key for grouping
+  confidence    text,
+  web_searched  boolean not null default false,
+  resolved      boolean not null default false,
+  created_at    timestamptz not null default now()
+);
+create index if not exists chat_gaps_agent_norm_idx on public.chat_gaps (agent_id, question_norm);
+create index if not exists chat_gaps_agent_created_idx on public.chat_gaps (agent_id, created_at desc);
+
 -- ── RLS: lock everything down ────────────────────────────────────────────────
 -- The app uses the service-role key server-side (bypasses RLS); the public anon
 -- key gets NO direct table access. All reads/writes go through this app's /api/*.
@@ -115,5 +133,6 @@ alter table public.chat_messages   enable row level security;
 alter table public.agent_config    enable row level security;
 alter table public.tool_credentials enable row level security;
 alter table public.chat_feedback   enable row level security;
+alter table public.chat_gaps       enable row level security;
 -- (Intentionally no permissive policies — anon cannot select/insert directly.
 --  tool_credentials is doubly protected: RLS here + the blob is encrypted at rest.)

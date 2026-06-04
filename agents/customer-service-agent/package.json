@@ -13,6 +13,7 @@
     "test": "vitest run",
     "eval": "node evals/run.mjs",
     "eval:judge": "node evals/run.mjs --judge",
+    "gaps": "node evals/gaps.mjs",
     "typecheck": "tsc --noEmit",
     "deploy:local": "bash scripts/deploy.sh local",
     "deploy:stage": "bash scripts/deploy.sh stage",
