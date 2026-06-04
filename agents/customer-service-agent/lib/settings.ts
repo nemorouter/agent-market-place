@@ -42,6 +42,8 @@ export interface AgentSettings {
   webSearchEnabled: boolean;
   /** Bare host to scope the search to, e.g. "nemorouter.ai". '' = whole web. */
   webSearchSite: string;
+  /** Web-search backend: '' (gateway default) | 'google' | 'openai'. */
+  webSearchProvider: string;
 }
 
 /** The browser-facing projection — ONLY presentation fields cross the wire. */
@@ -201,7 +203,14 @@ export function defaultSettings(cfg: AgentConfig): AgentSettings {
     // Web-search fallback defaults come from config (env); the admin row can override.
     webSearchEnabled: cfg.webSearch.enabled,
     webSearchSite: cfg.webSearch.site,
+    webSearchProvider: cfg.webSearch.provider,
   };
+}
+
+/** Normalize a web-search provider override to the allowed set ('', google, openai). */
+function normProvider(v: unknown): string {
+  const p = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  return p === 'google' || p === 'openai' ? p : '';
 }
 
 /** Overlay a partial (Supabase row) over a base. Arrays REPLACE wholesale, but an
@@ -227,6 +236,7 @@ export function mergeSettings(base: AgentSettings, over: Partial<AgentSettings> 
     webSearchEnabled: typeof over.webSearchEnabled === 'boolean' ? over.webSearchEnabled : base.webSearchEnabled,
     // A string (incl. '') is a deliberate override: '' = whole-web; a host is re-normalized.
     webSearchSite: typeof over.webSearchSite === 'string' ? domainOf(over.webSearchSite) : base.webSearchSite,
+    webSearchProvider: typeof over.webSearchProvider === 'string' ? normProvider(over.webSearchProvider) : base.webSearchProvider,
   };
   return out;
 }
@@ -284,6 +294,7 @@ export async function saveSettings(cfg: AgentConfig, patch: Partial<AgentSetting
     enabledTools: merged.enabledTools,
     webSearchEnabled: merged.webSearchEnabled,
     webSearchSite: merged.webSearchSite,
+    webSearchProvider: merged.webSearchProvider,
   };
   const { error } = await supabaseService()
     .from(CONFIG_TABLE)

@@ -129,13 +129,14 @@ export async function POST(req: Request): Promise<Response> {
     // Web-search behavior: operator /admin overlay wins over env defaults (settings
     // carries webSearchEnabled/webSearchSite; auto-trigger + thresholds stay env-tuned).
     const webSearchSite = settings.webSearchSite || cfg.webSearch.site;
+    const webSearchProvider = settings.webSearchProvider || cfg.webSearch.provider;
     const shouldWebSearch =
       settings.webSearchEnabled &&
       question &&
       (explicitWebSearch || (cfg.webSearch.autoOnLowConfidence && confidence.level === 'low'));
     if (shouldWebSearch) {
-      // Scope to the agent's own website when configured ("not in the docs? search our site").
-      const web = await webSearch(question, webSearchSite ? { site: webSearchSite } : undefined);
+      // Scope to the agent's own website + operator-selected backend (google|openai).
+      const web = await webSearch(question, { site: webSearchSite || undefined, provider: webSearchProvider || undefined });
       if (web.ran) {
         webRan = true;
         webContext = web.context;
