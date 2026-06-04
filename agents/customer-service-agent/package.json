@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "eval": "node evals/run.mjs",
+    "eval:judge": "node evals/run.mjs --judge",
     "typecheck": "tsc --noEmit",
     "deploy:local": "bash scripts/deploy.sh local",
     "deploy:stage": "bash scripts/deploy.sh stage",
