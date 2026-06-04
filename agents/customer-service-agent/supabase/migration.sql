@@ -86,6 +86,24 @@ create table if not exists public.tool_credentials (
   primary key (agent_id, tool_id)
 );
 
+-- ── Answer feedback (thumbs up/down after a reply) ───────────────────────────
+-- One row per rating. Captures the rating + the lightweight signals we already
+-- compute (the question, the answer's confidence level, whether web search ran)
+-- so operators can see WHERE the agent is weak and which 👎 answers escalated to
+-- the web. No PII required — visitor is the opaque session id. Additive + idempotent.
+create table if not exists public.chat_feedback (
+  id           uuid primary key default gen_random_uuid(),
+  agent_id     text not null,
+  session_id   text not null,
+  message_id   text,
+  rating       text not null check (rating in ('up', 'down')),
+  question     text,
+  confidence   text,
+  web_searched boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+create index if not exists chat_feedback_agent_created_idx on public.chat_feedback (agent_id, created_at desc);
+
 -- ── RLS: lock everything down ────────────────────────────────────────────────
 -- The app uses the service-role key server-side (bypasses RLS); the public anon
 -- key gets NO direct table access. All reads/writes go through this app's /api/*.
@@ -93,5 +111,6 @@ alter table public.kb_chunks       enable row level security;
 alter table public.chat_messages   enable row level security;
 alter table public.agent_config    enable row level security;
 alter table public.tool_credentials enable row level security;
+alter table public.chat_feedback   enable row level security;
 -- (Intentionally no permissive policies — anon cannot select/insert directly.
 --  tool_credentials is doubly protected: RLS here + the blob is encrypted at rest.)

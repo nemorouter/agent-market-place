@@ -12,7 +12,7 @@
 // the env/built-in defaults — mirroring lib/identity.ts, presentation must NEVER
 // break the chat path. Hrefs are sanitized everywhere (no javascript:/data: links).
 
-import { loadConfig, type AgentConfig } from './config';
+import { loadConfig, domainOf, type AgentConfig } from './config';
 import { supabaseAdmin, supabaseService } from './supabase';
 
 export type ContactType = 'phone' | 'email' | 'url';
@@ -37,6 +37,11 @@ export interface AgentSettings {
   contactMethods: ContactMethod[];
   /** Gateway tool ids the agent may use (MCP gateway, Phase 2). Empty = pure RAG. */
   enabledTools: string[];
+  /** Operator-editable web-search fallback (server-only). When the KB can't answer,
+   *  search this WEBSITE (Google `site:` scope) — "not in the docs? search our site". */
+  webSearchEnabled: boolean;
+  /** Bare host to scope the search to, e.g. "nemorouter.ai". '' = whole web. */
+  webSearchSite: string;
 }
 
 /** The browser-facing projection — ONLY presentation fields cross the wire. */
@@ -193,6 +198,9 @@ export function defaultSettings(cfg: AgentConfig): AgentSettings {
     contactMethods: contactMethods.length ? contactMethods : DEFAULT_CONTACT_METHODS,
     // Tools default OFF (pure RAG) unless the operator enables them. Comma list in env.
     enabledTools: sanitizeTools((env.TOOLS_ENABLED || '').split(',')),
+    // Web-search fallback defaults come from config (env); the admin row can override.
+    webSearchEnabled: cfg.webSearch.enabled,
+    webSearchSite: cfg.webSearch.site,
   };
 }
 
@@ -216,6 +224,9 @@ export function mergeSettings(base: AgentSettings, over: Partial<AgentSettings> 
     // enabledTools is intentionally NOT length-gated: an empty array is a valid,
     // deliberate "turn all tools off" — only `undefined` falls back to the base.
     enabledTools: Array.isArray(over.enabledTools) ? sanitizeTools(over.enabledTools) : base.enabledTools,
+    webSearchEnabled: typeof over.webSearchEnabled === 'boolean' ? over.webSearchEnabled : base.webSearchEnabled,
+    // A string (incl. '') is a deliberate override: '' = whole-web; a host is re-normalized.
+    webSearchSite: typeof over.webSearchSite === 'string' ? domainOf(over.webSearchSite) : base.webSearchSite,
   };
   return out;
 }
@@ -271,6 +282,8 @@ export async function saveSettings(cfg: AgentConfig, patch: Partial<AgentSetting
     quickLinks: merged.quickLinks,
     contactMethods: merged.contactMethods,
     enabledTools: merged.enabledTools,
+    webSearchEnabled: merged.webSearchEnabled,
+    webSearchSite: merged.webSearchSite,
   };
   const { error } = await supabaseService()
     .from(CONFIG_TABLE)
