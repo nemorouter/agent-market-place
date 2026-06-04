@@ -8,7 +8,7 @@
 //
 // PURE bits (normalizeQuestion, aggregateGaps) are split out for unit testing.
 
-import { supabaseService, supabaseAdmin } from './supabase';
+import { supabaseService } from './supabase';
 
 const MAX_Q = 500;
 
@@ -82,20 +82,47 @@ export function aggregateGaps(rows: GapRow[], limit = 50): GapCluster[] {
   return clusters.slice(0, limit);
 }
 
-/** Read recent gaps (newest first) and return the ranked clusters. Never throws → []. */
+/** Read recent gaps and return the ranked clusters. Combines BOTH signals:
+ *  - chat_gaps: auto-logged low-confidence answers (KB had no match), AND
+ *  - chat_feedback (rating='down'): questions a visitor explicitly marked unhelpful
+ *    (this is how medium-confidence-but-wrong answers — e.g. "what's the legal email?"
+ *    — get surfaced, since those don't trip the low-confidence auto-capture).
+ *  Uses the service client (admin-gated endpoint; service key always present here).
+ *  Never throws → []. */
 export async function topGaps(agentId: string, opts?: { sampleSize?: number; limit?: number }): Promise<GapCluster[]> {
   const sampleSize = opts?.sampleSize ?? 1000;
+  const rows: GapRow[] = [];
   try {
-    const { data, error } = await supabaseAdmin()
-      .from('chat_gaps')
-      .select('question,question_norm,confidence,web_searched')
-      .eq('agent_id', agentId)
-      .eq('resolved', false)
-      .order('created_at', { ascending: false })
-      .limit(sampleSize);
-    if (error || !Array.isArray(data)) return [];
-    return aggregateGaps(data as GapRow[], opts?.limit ?? 50);
-  } catch {
+    const db = supabaseService();
+    const [auto, negative] = await Promise.all([
+      db
+        .from('chat_gaps')
+        .select('question,question_norm,confidence,web_searched')
+        .eq('agent_id', agentId)
+        .eq('resolved', false)
+        .order('created_at', { ascending: false })
+        .limit(sampleSize),
+      db
+        .from('chat_feedback')
+        .select('question,confidence,web_searched')
+        .eq('agent_id', agentId)
+        .eq('rating', 'down')
+        .order('created_at', { ascending: false })
+        .limit(sampleSize),
+    ]);
+    if (auto.error) console.error('[gaps] chat_gaps read failed:', auto.error.message);
+    if (negative.error) console.error('[gaps] chat_feedback read failed:', negative.error.message);
+    for (const r of auto.data ?? []) {
+      const rr = r as Partial<GapRow>;
+      if (rr.question) rows.push({ question: rr.question, question_norm: rr.question_norm ?? normalizeQuestion(rr.question), confidence: rr.confidence ?? null, web_searched: rr.web_searched === true });
+    }
+    for (const r of negative.data ?? []) {
+      const rr = r as { question?: string | null; confidence?: string | null; web_searched?: boolean };
+      if (rr.question) rows.push({ question: rr.question, question_norm: normalizeQuestion(rr.question), confidence: rr.confidence ?? null, web_searched: rr.web_searched === true });
+    }
+  } catch (e) {
+    console.error('[gaps] topGaps failed:', e instanceof Error ? e.message : e);
     return [];
   }
+  return aggregateGaps(rows, opts?.limit ?? 50);
 }
