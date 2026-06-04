@@ -200,20 +200,6 @@ interface Citation {
   url: string | null;
 }
 
-/** Collapse citations that point at the same source (multiple KB chunks of one doc) so
- *  the "Sources" row shows each document once. Keyed by url, else title. */
-function dedupeCitations(list: Citation[]): Citation[] {
-  const seen = new Set<string>();
-  const out: Citation[] = [];
-  for (const c of list) {
-    const key = (c.url || c.title || '').trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    out.push(c);
-  }
-  return out;
-}
-
 interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
@@ -228,7 +214,12 @@ interface ChatMessage {
   question?: string;
   /** The visitor's rating once given (locks the buttons). */
   feedback?: 'up' | 'down';
+  /** For a 👎: the reason the visitor picked for why it wasn't helpful. */
+  feedbackReason?: string;
 }
+
+/** The "what was wrong?" options shown after a 👎 — captured for journey analytics. */
+const DOWN_REASONS = ['Incorrect', 'Incomplete', "Not what I asked", "Couldn't find it"] as const;
 
 /* Minimal Web Speech API surface — the DOM lib ships these as `any`/absent
  * across browsers, so we type only what we touch. */
@@ -656,12 +647,9 @@ export function AskGuruWidget({
     void send(input);
   };
 
-  // Record a 👍/👎 on an answer. Optimistic (locks the buttons immediately); the POST
-  // is fire-and-forget — feedback must never feel like it can fail to the visitor.
-  const submitFeedback = useCallback(
-    (m: ChatMessage, rating: 'up' | 'down') => {
-      if (m.feedback) return; // already rated
-      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, feedback: rating } : x)));
+  // Fire-and-forget POST to /api/feedback — never surfaces an error to the visitor.
+  const postFeedback = useCallback(
+    (m: ChatMessage, rating: 'up' | 'down', reason?: string) => {
       void fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -672,12 +660,36 @@ export function AskGuruWidget({
           question: m.question ?? '',
           confidence: m.confidence ?? '',
           webSearched: m.webSearched === true,
+          ...(reason ? { reason } : {}),
         }),
-      }).catch(() => {
-        /* best-effort — never surface a feedback POST error to the visitor */
-      });
+      }).catch(() => {});
     },
     [],
+  );
+
+  // Record a 👍/👎. 👍 posts immediately (signal: was this answer helpful?). 👎 locks
+  // the buttons and reveals the "what was wrong?" follow-up — we only post the 👎 once
+  // a reason is chosen, so every negative carries a structured reason for the journey
+  // analytics (chat_feedback.reason). A 👎 with no reason picked still isn't lost: the
+  // escalation/"close" both post it.
+  const submitFeedback = useCallback(
+    (m: ChatMessage, rating: 'up' | 'down') => {
+      if (m.feedback) return; // already rated
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, feedback: rating } : x)));
+      if (rating === 'up') postFeedback(m, 'up');
+      // 'down' waits for a reason (submitReason) — chips render below.
+    },
+    [postFeedback],
+  );
+
+  // The visitor picked WHY the 👎 answer wasn't helpful. Post it + lock the chips.
+  const submitReason = useCallback(
+    (m: ChatMessage, reason: string) => {
+      if (m.feedbackReason) return;
+      setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, feedbackReason: reason } : x)));
+      postFeedback(m, 'down', reason);
+    },
+    [postFeedback],
   );
 
   // "Search the web" escalation — re-ask the same question through the web-search path.
@@ -1166,87 +1178,64 @@ export function AskGuruWidget({
                                 </span>
                               )}
                             </div>
-                            {m.citations && m.citations.length > 0 && m.content && (
-                              <div className="flex flex-col gap-1 pt-0.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                                  Sources
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {dedupeCitations(m.citations).map((c, i) =>
-                                    c.url ? (
-                                      <a
-                                        key={`${c.url}-${i}`}
-                                        href={c.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
-                                      >
-                                        <Link2 className="h-3 w-3 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-                                        <span className="truncate">{c.title || c.url}</span>
-                                      </a>
-                                    ) : (
-                                      <span
-                                        key={`cite-${i}`}
-                                        className="inline-flex max-w-full items-center truncate rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]"
-                                      >
-                                        <span className="truncate">{c.title}</span>
-                                      </span>
-                                    ),
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            {/* Confidence + feedback row — only on a finished assistant answer. */}
+                            {/* Sources/citations + confidence badge intentionally NOT rendered
+                                (operator preference — keep the answer clean). Confidence + web
+                                search still run under the hood to drive the escalation below. */}
+                            {/* Feedback row — only on a finished assistant answer. */}
                             {m.role === 'assistant' &&
                               m.content &&
                               !(streaming && m.id === messages[messages.length - 1]?.id) && (
-                                <div className="flex flex-wrap items-center gap-2 pt-1">
-                                  {m.webSearched ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
-                                      <Globe className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
-                                      Web result
-                                    </span>
-                                  ) : m.confidence ? (
-                                    <span
-                                      className="inline-flex items-center gap-1 rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]"
-                                      title="How well this matched the knowledge base"
-                                    >
-                                      <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
-                                      {m.confidence === 'high'
-                                        ? 'High confidence'
-                                        : m.confidence === 'medium'
-                                          ? 'Medium confidence'
-                                          : 'Low confidence'}
-                                    </span>
-                                  ) : null}
-
-                                  {/* Thumbs up / down */}
-                                  <div className="ml-auto inline-flex items-center gap-0.5">
-                                    {m.feedback ? (
-                                      <span className="text-[10px] text-[var(--text-muted)]">
-                                        {m.feedback === 'up' ? 'Thanks for the feedback' : 'Thanks — we’ll improve this'}
-                                      </span>
-                                    ) : (
-                                      <>
-                                        <button
-                                          type="button"
-                                          aria-label="Helpful"
-                                          onClick={() => submitFeedback(m, 'up')}
-                                          className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
-                                        >
-                                          <ThumbsUp className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          aria-label="Not helpful"
-                                          onClick={() => submitFeedback(m, 'down')}
-                                          className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
-                                        >
-                                          <ThumbsDown className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
-                                        </button>
-                                      </>
+                                <div className="flex flex-col gap-1.5 pt-1">
+                                  {/* Thumbs row — "was this helpful?" signal */}
+                                  <div className="flex items-center gap-2">
+                                    {!m.feedback && (
+                                      <span className="text-[10px] text-[var(--text-muted)]">Was this helpful?</span>
                                     )}
+                                    <div className="ml-auto inline-flex items-center gap-0.5">
+                                      {m.feedback === 'up' ? (
+                                        <span className="text-[10px] text-[var(--text-muted)]">Thanks for the feedback</span>
+                                      ) : m.feedback === 'down' && m.feedbackReason ? (
+                                        <span className="text-[10px] text-[var(--text-muted)]">Thanks — that helps us improve</span>
+                                      ) : m.feedback === 'down' ? (
+                                        <span className="text-[10px] font-medium text-[var(--text-secondary)]">What was off?</span>
+                                      ) : (
+                                        <>
+                                          <button
+                                            type="button"
+                                            aria-label="Helpful"
+                                            onClick={() => submitFeedback(m, 'up')}
+                                            className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                          >
+                                            <ThumbsUp className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            aria-label="Not helpful"
+                                            onClick={() => submitFeedback(m, 'down')}
+                                            className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                          >
+                                            <ThumbsDown className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
+
+                                  {/* 👎 follow-up: specific question chips → captured as the feedback reason. */}
+                                  {m.feedback === 'down' && !m.feedbackReason && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {DOWN_REASONS.map((r) => (
+                                        <button
+                                          key={r}
+                                          type="button"
+                                          onClick={() => submitReason(m, r)}
+                                          className="rounded-full border border-[var(--border-light)] bg-[var(--surface-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                                        >
+                                          {r}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
 
                                   {/* Escalate to web search when the answer was weak or marked unhelpful. */}
                                   {!m.webSearched &&

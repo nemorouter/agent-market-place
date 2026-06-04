@@ -100,9 +100,12 @@ create table if not exists public.chat_feedback (
   question     text,
   confidence   text,
   web_searched boolean not null default false,
+  reason       text,  -- why a 👎 wasn't helpful (reason code or free text); null for 👍
   created_at   timestamptz not null default now()
 );
 create index if not exists chat_feedback_agent_created_idx on public.chat_feedback (agent_id, created_at desc);
+-- Additive for existing deployments (table may predate the reason column).
+alter table public.chat_feedback add column if not exists reason text;
 
 -- ── RLS: lock everything down ────────────────────────────────────────────────
 -- The app uses the service-role key server-side (bypasses RLS); the public anon

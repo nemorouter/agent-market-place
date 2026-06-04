@@ -10,6 +10,7 @@ describe('validateFeedback (pure)', () => {
       question: null,
       confidence: null,
       webSearched: false,
+      reason: null,
     });
   });
 
@@ -48,6 +49,18 @@ describe('validateFeedback (pure)', () => {
   it('webSearched only true when strictly === true', () => {
     expect(validateFeedback({ rating: 'up', sessionId: 's', webSearched: 'yes' })!.webSearched).toBe(false);
     expect(validateFeedback({ rating: 'up', sessionId: 's', webSearched: 1 })!.webSearched).toBe(false);
+  });
+
+  it('captures a 👎 reason (the "what was off?" answer)', () => {
+    expect(validateFeedback({ rating: 'down', sessionId: 's', reason: 'Incorrect' })!.reason).toBe('Incorrect');
+  });
+
+  it('drops reason on a 👍 (reason only meaningful for negatives)', () => {
+    expect(validateFeedback({ rating: 'up', sessionId: 's', reason: 'Incorrect' })!.reason).toBeNull();
+  });
+
+  it('caps an over-long reason', () => {
+    expect(validateFeedback({ rating: 'down', sessionId: 's', reason: 'x'.repeat(500) })!.reason!.length).toBe(280);
   });
 });
 

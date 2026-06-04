@@ -17,6 +17,8 @@ export interface FeedbackInput {
   question?: string;
   confidence?: string;
   webSearched?: boolean;
+  /** Why the answer was unhelpful (only meaningful for a 👎): a reason code or free text. */
+  reason?: string;
 }
 
 export interface ValidFeedback {
@@ -26,11 +28,13 @@ export interface ValidFeedback {
   question: string | null;
   confidence: string | null;
   webSearched: boolean;
+  reason: string | null;
 }
 
 const MAX_ID = 200;
 const MAX_QUESTION = 2_000;
 const MAX_CONFIDENCE = 16;
+const MAX_REASON = 280;
 
 function clip(v: unknown, max: number): string | null {
   return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null;
@@ -50,6 +54,8 @@ export function validateFeedback(body: unknown): ValidFeedback | null {
     question: clip(b.question, MAX_QUESTION),
     confidence: clip(b.confidence, MAX_CONFIDENCE),
     webSearched: b.webSearched === true,
+    // Reason only carries for a 👎 (why it wasn't helpful); ignored for 👍.
+    reason: b.rating === 'down' ? clip(b.reason, MAX_REASON) : null,
   };
 }
 
@@ -65,6 +71,7 @@ export async function saveFeedback(agentId: string, fb: ValidFeedback): Promise<
       question: fb.question,
       confidence: fb.confidence,
       web_searched: fb.webSearched,
+      reason: fb.reason,
     });
   if (error) throw new Error(error.message);
 }
