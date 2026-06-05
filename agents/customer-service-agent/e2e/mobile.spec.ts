@@ -33,6 +33,35 @@ test('home: send + suggestion controls are reachable', async ({ page }) => {
   expect(box!.width).toBeGreaterThan(150);
 });
 
+test('desktop: Expand maximizes the widget to full screen with Close + Minimize', async ({ page, viewport }) => {
+  test.skip((viewport?.width ?? 0) < 640, 'Expand is a desktop control (hidden on mobile)');
+  await page.goto('/');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  // Corner card first: clearly smaller than the viewport.
+  const before = (await dialog.boundingBox())!;
+  expect(before.width).toBeLessThan(viewport!.width - 100);
+
+  await page.getByRole('button', { name: 'Expand' }).click();
+  await page.waitForTimeout(400);
+
+  // Now full screen — fills the viewport edge to edge.
+  const after = (await dialog.boundingBox())!;
+  expect(after.width).toBeGreaterThanOrEqual(viewport!.width - 2);
+  expect(after.height).toBeGreaterThanOrEqual(viewport!.height - 2);
+
+  // Escape routes are present (the reported "with close option").
+  await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Minimize' })).toBeVisible();
+
+  // Minimize returns to the corner card.
+  await page.getByRole('button', { name: 'Minimize' }).click();
+  await page.waitForTimeout(400);
+  const restored = (await dialog.boundingBox())!;
+  expect(restored.width).toBeLessThan(viewport!.width - 100);
+});
+
 test.describe('admin dashboard', () => {
   test.skip(!ADMIN_TOKEN, 'set ADMIN_TOKEN to test the authenticated editor');
 
