@@ -46,8 +46,9 @@ export default function Page() {
         </p>
       </div>
 
-      {/* Open in the full two-pane view on the demo page. */}
-      <AskGuruWidget defaultOpen defaultExpanded />
+      {/* Open as the corner card on the demo page; the header Expand button
+          maximizes it to full screen (Minimize / Close return from there). */}
+      <AskGuruWidget defaultOpen />
     </main>
   );
 }

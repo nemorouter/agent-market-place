@@ -904,10 +904,12 @@ export function AskGuruWidget({
           role="dialog"
           aria-modal="false"
           aria-label="Ask AI Guru about Nemo Router"
-          className={`fade-up fixed z-50 flex flex-col overflow-hidden border border-[var(--border-light)] shadow-[0_24px_64px_-16px_rgba(9,9,11,0.34)] ${WARM_SHEET} inset-x-0 bottom-0 top-[7dvh] rounded-t-[28px] sm:inset-x-auto sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:rounded-2xl ${
+          className={`fade-up fixed z-50 flex flex-col overflow-hidden border border-[var(--border-light)] shadow-[0_24px_64px_-16px_rgba(9,9,11,0.34)] ${WARM_SHEET} inset-x-0 bottom-0 top-[7dvh] rounded-t-[28px] ${
             expanded
-              ? 'sm:h-[min(82vh,720px)] sm:w-[min(700px,calc(100vw-2.5rem))]'
-              : 'sm:h-auto sm:max-h-[min(78vh,640px)] sm:w-[min(424px,calc(100vw-2rem))]'
+              ? // Maximize → TRUE full screen on desktop (edge-to-edge). Header keeps
+                // Minimize (back to the corner card) + Close, so it's never a trap.
+                'sm:inset-0 sm:rounded-none sm:border-0'
+              : 'sm:inset-x-auto sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:rounded-2xl sm:h-auto sm:max-h-[min(78vh,640px)] sm:w-[min(424px,calc(100vw-2rem))]'
           }`}
         >
           {/* Mobile drag handle */}
@@ -1053,7 +1055,7 @@ export function AskGuruWidget({
               {!hasThread ? (
                 /* ── Empty state: warm Verizon-style hero ── */
                 <div className="flex flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-1">
-                  <div className="flex flex-1 flex-col justify-center gap-5 py-2">
+                  <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-5 py-2">
                     <div className="space-y-2">
                       <h2 className="text-[22px] font-semibold leading-tight tracking-[-0.01em] text-[var(--text-primary)]">
                         {identity.authenticated && identity.displayName
@@ -1099,7 +1101,7 @@ export function AskGuruWidget({
                   </div>
 
                   {/* Footer: disclaimer + support pill */}
-                  <div className="mt-4 space-y-3 pt-1 text-center">
+                  <div className="mx-auto mt-4 w-full max-w-2xl space-y-3 pt-1 text-center">
                     <p className="px-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
                       AI-generated and may be imperfect. Verify pricing on the{' '}
                       <a
@@ -1126,7 +1128,7 @@ export function AskGuruWidget({
               ) : (
                 /* ── Thread state: messages + pinned composer ── */
                 <>
-                  <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
+                  <div ref={scrollRef} className="mx-auto w-full max-w-3xl flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
                     {messages.map((m) =>
                       m.role === 'user' ? (
                         <div key={m.id} className="flex justify-end">
@@ -1280,7 +1282,7 @@ export function AskGuruWidget({
                   {/* Composer */}
                   <form
                     onSubmit={onSubmit}
-                    className="p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+                    className="mx-auto w-full max-w-3xl p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
                   >
                     {voiceNote('px-1 pb-1.5')}
                     <div className="flex items-end gap-2 rounded-2xl border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 py-2 focus-within:border-[var(--border-medium)]">
