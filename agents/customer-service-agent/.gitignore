@@ -16,3 +16,7 @@ public/widget.js
 !.env.local.example
 !.env.stage.example
 !.env.prod.example
+playwright-report/
+test-results/
+/test-results/
+.playwright/

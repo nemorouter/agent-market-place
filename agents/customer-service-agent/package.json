@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "eval": "node evals/run.mjs",
     "eval:judge": "node evals/run.mjs --judge",
     "gaps": "node evals/gaps.mjs",
@@ -28,6 +29,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
