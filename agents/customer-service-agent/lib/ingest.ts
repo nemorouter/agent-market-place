@@ -235,6 +235,40 @@ export async function fetchSeedPages(urls: string[]): Promise<SourceDoc[]> {
   return docs;
 }
 
+// Vertex text-embedding-* rejects a request whose TOTAL input exceeds 20,000
+// tokens (across all chunks in the batch), so batching by count alone (e.g. 64)
+// blows up on dense pages — observed 28,347 tokens for 64×1200-char chunks. We
+// batch by a char budget instead (~2.7 chars/token for prose → 40k chars ≈ 15k
+// tokens, a safe margin under 20k), still capped at maxCount instances/request.
+const EMBED_MAX_BATCH_CHARS = Number(process.env.EMBED_MAX_BATCH_CHARS) || 40_000;
+const EMBED_MAX_BATCH_COUNT = Number(process.env.EMBED_MAX_BATCH_COUNT) || 64;
+
+/** PURE: greedily pack rows into batches bounded by BOTH a char budget (token
+ *  limit proxy) and a max instance count. A single row (≤ CHUNK_CHARS) never
+ *  exceeds the budget, so every row always lands in a batch. */
+export function buildEmbedBatches<T extends { content: string }>(
+  rows: T[],
+  opts?: { maxChars?: number; maxCount?: number },
+): T[][] {
+  const maxChars = opts?.maxChars ?? EMBED_MAX_BATCH_CHARS;
+  const maxCount = opts?.maxCount ?? EMBED_MAX_BATCH_COUNT;
+  const batches: T[][] = [];
+  let cur: T[] = [];
+  let curChars = 0;
+  for (const r of rows) {
+    const len = r.content.length;
+    if (cur.length && (cur.length >= maxCount || curChars + len > maxChars)) {
+      batches.push(cur);
+      cur = [];
+      curChars = 0;
+    }
+    cur.push(r);
+    curChars += len;
+  }
+  if (cur.length) batches.push(cur);
+  return batches;
+}
+
 /** Full ingest: sources → chunks → embeddings → upsert. Replaces the KB (full re-index).
  *  Writes require the service-role key (RLS-bypassing); fails loudly otherwise.
  *  Embeds EVERYTHING first, THEN swaps the table — so an embedding/gateway failure
@@ -247,10 +281,10 @@ export async function ingest(opts: { docs: SourceDoc[]; embeddingModel: string; 
     for (const c of chunk(d.content)) rows.push({ title: d.title, url: d.url, content: c, audiences: d.audiences });
 
   // 1) Embed all batches up front. Any failure throws BEFORE we touch the table.
-  const batch = opts.batchSize ?? 64;
+  //    Batches are token-budgeted (see buildEmbedBatches) so a dense page can't
+  //    exceed the provider's per-request token limit.
   const payloads: Array<Record<string, unknown>> = [];
-  for (let i = 0; i < rows.length; i += batch) {
-    const slice = rows.slice(i, i + batch);
+  for (const slice of buildEmbedBatches(rows)) {
     const vectors = await embed(opts.embeddingModel, slice.map((r) => r.content));
     slice.forEach((r, j) => {
       const row: Record<string, unknown> = {
@@ -267,12 +301,14 @@ export async function ingest(opts: { docs: SourceDoc[]; embeddingModel: string; 
   }
 
   // 2) Now that every vector exists, clear the table and insert the fresh set.
+  //    DB inserts aren't token-limited — batch by a fixed row count for throughput.
+  const insertBatch = opts.batchSize ?? 64;
   await db.from('kb_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   let inserted = 0;
-  for (let i = 0; i < payloads.length; i += batch) {
-    const { error } = await db.from('kb_chunks').insert(payloads.slice(i, i + batch));
+  for (let i = 0; i < payloads.length; i += insertBatch) {
+    const { error } = await db.from('kb_chunks').insert(payloads.slice(i, i + insertBatch));
     if (error) throw new Error(`ingest insert failed: ${error.message}`);
-    inserted += Math.min(batch, payloads.length - i);
+    inserted += Math.min(insertBatch, payloads.length - i);
   }
   return inserted;
 }
