@@ -4,7 +4,7 @@
 // pgvector KB. Gated by a shared ADMIN_TOKEN (server-side env) so the public can't
 // trigger it. Run it after your docs/site change.
 import { loadConfig } from '@/lib/config';
-import { readDocsDir, crawlWebsite, ingest, type SourceDoc } from '@/lib/ingest';
+import { readDocsDir, crawlWebsite, fetchSeedPages, parseSeedUrls, ingest, type SourceDoc } from '@/lib/ingest';
 import { isAuthorized } from '@/lib/admin-auth';
 import path from 'node:path';
 
@@ -29,10 +29,21 @@ export async function POST(req: Request): Promise<Response> {
   const sources: SourceDoc[] = [];
   if (docsPath) sources.push(...(await readDocsDir(path.resolve(process.cwd(), docsPath), baseUrl)));
   if (websiteUrl) sources.push(...(await crawlWebsite(websiteUrl, maxPages)));
+
+  // Explicit seed pages (WEBSITE_SEED_URLS) — fetched verbatim, no link-following.
+  // Guarantees key pages (/status, /contact, /legal, /pricing) land in the KB even
+  // when the crawl root (e.g. /docs) never links to them. De-duped by URL against
+  // whatever the crawl already discovered so a page is never embedded twice.
+  const seenUrls = new Set(sources.map((s) => s.url).filter(Boolean) as string[]);
+  const seedDocs = (await fetchSeedPages(parseSeedUrls(process.env.WEBSITE_SEED_URLS))).filter(
+    (d) => !d.url || !seenUrls.has(d.url),
+  );
+  sources.push(...seedDocs);
+
   if (!sources.length) {
     return json({ error: 'no_sources', message: 'Set DOCS_PATH and/or WEBSITE_URL in your env.' }, 400);
   }
 
   const chunks = await ingest({ docs: sources, embeddingModel: cfg.embeddingModel });
-  return json({ ok: true, sources: sources.length, chunks }, 200);
+  return json({ ok: true, sources: sources.length, seeds: seedDocs.length, chunks }, 200);
 }
