@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chunk, parseAudiences, isBlockedHost, isSafeCrawlUrl } from '../lib/ingest';
+import { chunk, parseAudiences, isBlockedHost, isSafeCrawlUrl, parseSeedUrls } from '../lib/ingest';
 
 describe('chunk', () => {
   it('returns a single chunk for short text', () => {
@@ -69,5 +69,28 @@ describe('isSafeCrawlUrl', () => {
       'not a url',
     ])
       expect(isSafeCrawlUrl(u)).toBe(false);
+  });
+});
+
+describe('parseSeedUrls', () => {
+  it('returns [] for empty/undefined', () => {
+    expect(parseSeedUrls(undefined)).toEqual([]);
+    expect(parseSeedUrls('')).toEqual([]);
+    expect(parseSeedUrls('   ')).toEqual([]);
+  });
+  it('splits on commas and whitespace/newlines', () => {
+    expect(parseSeedUrls('https://a.com/x, https://a.com/y\nhttps://a.com/z')).toEqual([
+      'https://a.com/x',
+      'https://a.com/y',
+      'https://a.com/z',
+    ]);
+  });
+  it('de-dupes repeated URLs', () => {
+    expect(parseSeedUrls('https://a.com/x, https://a.com/x')).toEqual(['https://a.com/x']);
+  });
+  it('drops unsafe (SSRF) and malformed entries', () => {
+    expect(
+      parseSeedUrls('https://a.com/ok, http://localhost/x, file:///etc/passwd, http://169.254.169.254/, not-a-url'),
+    ).toEqual(['https://a.com/ok']);
   });
 });

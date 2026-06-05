@@ -204,6 +204,37 @@ export async function crawlWebsite(startUrl: string, maxPages: number): Promise<
   return docs;
 }
 
+/** PURE: parse a comma/newline-separated WEBSITE_SEED_URLS list into a clean,
+ *  de-duped array of safe-to-crawl absolute URLs (drops blanks + unsafe hosts). */
+export function parseSeedUrls(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const part of raw.split(/[\s,]+/)) {
+    const u = part.trim();
+    if (!u || seen.has(u) || !isSafeCrawlUrl(u)) continue;
+    seen.add(u);
+    out.push(u);
+  }
+  return out;
+}
+
+/** Fetch an explicit list of pages and return them as SourceDocs — NO link
+ *  following (unlike crawlWebsite). This is how an operator guarantees specific
+ *  pages (e.g. /status, /contact, /legal, /pricing) land in the KB without
+ *  pulling in the whole marketing site. SSRF-guarded + byte-capped via fetchPage. */
+export async function fetchSeedPages(urls: string[]): Promise<SourceDoc[]> {
+  const docs: SourceDoc[] = [];
+  for (const url of urls) {
+    const html = await fetchPage(url);
+    if (html == null) continue;
+    const text = htmlToText(html);
+    const title = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || url).trim();
+    if (text.length > 200) docs.push({ title, url, content: text });
+  }
+  return docs;
+}
+
 /** Full ingest: sources → chunks → embeddings → upsert. Replaces the KB (full re-index).
  *  Writes require the service-role key (RLS-bypassing); fails loudly otherwise.
  *  Embeds EVERYTHING first, THEN swaps the table — so an embedding/gateway failure

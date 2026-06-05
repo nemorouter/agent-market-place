@@ -91,20 +91,34 @@
     },
 
     {
+      "id": "kb-status-page",
+      "category": "kb",
+      "question": "Do you have a public status page and where is it?",
+      "expect": { "notContains": ["internal_error", "[EMAIL_REDACTED]"], "containsAny": ["status", "operational", "uptime", "99.9"] },
+      "ideal": "AFFIRMS a public status page exists (nemorouter.ai/status — 'all systems operational', 99.9% uptime). Must NOT deny it exists. Answerable once /status is seeded into the KB (WEBSITE_SEED_URLS)."
+    },
+    {
+      "id": "kb-contact-channels",
+      "category": "kb",
+      "question": "How do I contact sales or security?",
+      "expect": { "notContains": ["internal_error"], "containsAny": ["sales", "security", "contact", "email"] },
+      "ideal": "Describes the contact channels (sales / support / security / privacy) from the /contact page (seeded into the KB)."
+    },
+    {
       "id": "websearch-explicit-status",
       "category": "websearch",
-      "question": "Do you have a public status page and where is it?",
+      "question": "Where can I subscribe to incident notifications?",
       "mode": "websearch",
       "expect": { "notContains": ["internal_error", "guardrail_blocked"] },
       "ideal": "Resilience: explicit web search either returns a site-scoped web answer OR degrades to the doc answer — never a hard error (web delivery is best-effort while the prompt-injection guardrail's homoglyph heuristic can false-positive on web content)."
     },
     {
-      "id": "websearch-general",
+      "id": "websearch-pricing",
       "category": "websearch",
-      "question": "What is the latest stable Node.js LTS version?",
+      "question": "What is the platform fee on the annual tier?",
       "mode": "websearch",
-      "expect": { "notContains": ["internal_error", "guardrail_blocked"] },
-      "ideal": "Resilience smoke for the web path on a clean, ASCII-friendly query — no hard error."
+      "expect": { "notContains": ["internal_error", "guardrail_blocked"], "containsAny": ["0%", "fee", "tier", "annual"] },
+      "ideal": "Site-scoped answer: Tier 3 (annual) has a 0% platform fee (from /pricing, seeded into the KB) — exercises the 'not in /docs, answer from the site' path with a clean ASCII query."
     }
   ]
 }
