@@ -20,6 +20,14 @@ describe('chunk', () => {
   it('collapses excessive blank lines', () => {
     expect(chunk('a\n\n\n\n\nb')).toEqual(['a\n\nb']);
   });
+  it('strips NUL + C0 control chars (Postgres "unsupported Unicode escape sequence")', () => {
+    // crawled/seeded HTML can carry a NUL byte -> Postgres rejects the insert.
+    const out = chunk('hello\u0000\u0001world!');
+    expect(out).toHaveLength(1);
+    // eslint-disable-next-line no-control-regex
+    expect(out[0]).not.toMatch(/[\u0000-\u001F\u007F]/);
+    expect(out[0]).toBe('hello world!');
+  });
 });
 
 describe('parseAudiences', () => {
