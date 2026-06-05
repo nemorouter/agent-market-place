@@ -928,7 +928,7 @@ export function AskGuruWidget({
                   type="button"
                   onClick={reset}
                   aria-label="New chat"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8"
                 >
                   <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                 </button>
@@ -938,7 +938,7 @@ export function AskGuruWidget({
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
                 aria-label={expanded ? 'Minimize' : 'Expand'}
-                className="hidden h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:inline-flex"
+                className="hidden h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8 sm:inline-flex"
               >
                 {expanded ? (
                   <Minimize2 className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
@@ -950,7 +950,7 @@ export function AskGuruWidget({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8"
               >
                 <X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
               </button>

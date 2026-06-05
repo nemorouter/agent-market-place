@@ -64,10 +64,11 @@ const EMPTY: AgentSettings = {
 const labelCls = 'block text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
 const inputCls =
   'w-full rounded-lg border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 py-2 text-[14px] text-[var(--text-primary)] outline-none focus:border-[var(--border-medium)]';
+// min-h-[44px] keeps every action a comfortable touch target on mobile (UX §2).
 const btnPrimary =
-  'inline-flex items-center justify-center rounded-lg bg-[var(--text-primary)] px-4 py-2 text-[13px] font-semibold text-[var(--surface-primary)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40';
+  'inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[var(--text-primary)] px-4 py-2 text-[13px] font-semibold text-[var(--surface-primary)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40';
 const btnGhost =
-  'inline-flex items-center justify-center rounded-lg border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]';
+  'inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 py-2 text-[13px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]';
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -541,9 +542,9 @@ export default function AdminPage() {
           onAdd={() => setSettings((s) => ({ ...s, quickLinks: [...s.quickLinks, { label: '', href: '' }] }))}
           onRemove={(i) => setSettings((s) => ({ ...s, quickLinks: s.quickLinks.filter((_, j) => j !== i) }))}
           render={(link, i) => (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
-                className={`${inputCls} w-1/3`}
+                className={`${inputCls} sm:w-1/3`}
                 value={link.label}
                 placeholder="Docs"
                 onChange={(e) =>
@@ -570,9 +571,9 @@ export default function AdminPage() {
           onAdd={() => setSettings((s) => ({ ...s, contactMethods: [...s.contactMethods, { type: 'phone', label: '', value: '' }] }))}
           onRemove={(i) => setSettings((s) => ({ ...s, contactMethods: s.contactMethods.filter((_, j) => j !== i) }))}
           render={(m, i) => (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <select
-                className={`${inputCls} w-28`}
+                className={`${inputCls} sm:w-28`}
                 value={m.type}
                 onChange={(e) =>
                   setSettings((s) => ({
@@ -586,7 +587,7 @@ export default function AdminPage() {
                 <option value="url">URL</option>
               </select>
               <input
-                className={`${inputCls} w-1/3`}
+                className={`${inputCls} sm:w-1/3`}
                 value={m.label}
                 placeholder="Call sales"
                 onChange={(e) =>
@@ -828,7 +829,7 @@ function ListEditor<T>({
                 type="button"
                 onClick={() => onRemove(i)}
                 aria-label="Remove"
-                className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--nemo-coral-dark)]"
+                className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[18px] text-[var(--text-muted)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--nemo-coral-dark)] sm:mt-1 sm:h-9 sm:w-9"
               >
                 ×
               </button>
