@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chunk, parseAudiences, isBlockedHost, isSafeCrawlUrl, parseSeedUrls } from '../lib/ingest';
+import { chunk, parseAudiences, isBlockedHost, isSafeCrawlUrl, parseSeedUrls, buildEmbedBatches } from '../lib/ingest';
 
 describe('chunk', () => {
   it('returns a single chunk for short text', () => {
@@ -92,5 +92,39 @@ describe('parseSeedUrls', () => {
     expect(
       parseSeedUrls('https://a.com/ok, http://localhost/x, file:///etc/passwd, http://169.254.169.254/, not-a-url'),
     ).toEqual(['https://a.com/ok']);
+  });
+});
+
+describe('buildEmbedBatches (token-budgeted batching)', () => {
+  const rows = (n: number, len: number) => Array.from({ length: n }, (_, i) => ({ id: i, content: 'x'.repeat(len) }));
+
+  it('splits by char budget before the count cap (the Vertex 20k-token bug)', () => {
+    // 64×1200 chars = 76,800 > 40k budget → must split into multiple batches,
+    // NOT one over-budget request (which Vertex rejects with 400).
+    const batches = buildEmbedBatches(rows(64, 1200));
+    expect(batches.length).toBeGreaterThan(1);
+    for (const b of batches) {
+      const chars = b.reduce((a, r) => a + r.content.length, 0);
+      expect(chars).toBeLessThanOrEqual(40_000);
+      expect(b.length).toBeLessThanOrEqual(64);
+    }
+    // every row is covered exactly once
+    expect(batches.reduce((a, b) => a + b.length, 0)).toBe(64);
+  });
+
+  it('caps by count when chunks are tiny', () => {
+    const batches = buildEmbedBatches(rows(200, 10), { maxChars: 1_000_000, maxCount: 64 });
+    expect(batches.every((b) => b.length <= 64)).toBe(true);
+    expect(batches.reduce((a, b) => a + b.length, 0)).toBe(200);
+  });
+
+  it('keeps an over-budget single row in its own batch (never drops it)', () => {
+    const batches = buildEmbedBatches([{ content: 'x'.repeat(50_000) }], { maxChars: 40_000 });
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(1);
+  });
+
+  it('returns [] for no rows', () => {
+    expect(buildEmbedBatches([])).toEqual([]);
   });
 });
