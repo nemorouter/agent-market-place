@@ -904,7 +904,7 @@ export function AskGuruWidget({
           role="dialog"
           aria-modal="false"
           aria-label="Ask AI Guru about Nemo Router"
-          className={`fade-up fixed z-50 flex flex-col overflow-hidden border border-[var(--border-light)] shadow-[0_24px_64px_-16px_rgba(9,9,11,0.34)] ${WARM_SHEET} inset-x-0 bottom-0 top-[7dvh] rounded-t-[28px] ${
+          className={`fade-up fixed z-50 flex flex-col overflow-hidden border border-[var(--border-light)] shadow-[0_24px_64px_-16px_rgba(9,9,11,0.34)] ${WARM_SHEET} inset-0 rounded-none border-0 pt-[env(safe-area-inset-top)] sm:border sm:pt-0 ${
             expanded
               ? // Maximize → TRUE full screen on desktop (edge-to-edge). Header keeps
                 // Minimize (back to the corner card) + Close, so it's never a trap.
@@ -912,8 +912,6 @@ export function AskGuruWidget({
               : 'sm:inset-x-auto sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:rounded-2xl sm:h-auto sm:max-h-[min(78vh,640px)] sm:w-[min(424px,calc(100vw-2rem))]'
           }`}
         >
-          {/* Mobile drag handle */}
-          <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-[var(--text-primary)]/15 sm:hidden" />
 
           {/* Header */}
           <div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -930,7 +928,7 @@ export function AskGuruWidget({
                   type="button"
                   onClick={reset}
                   aria-label="New chat"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8"
                 >
                   <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                 </button>
@@ -940,7 +938,7 @@ export function AskGuruWidget({
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
                 aria-label={expanded ? 'Minimize' : 'Expand'}
-                className="hidden h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8 sm:inline-flex"
+                className="hidden h-11 w-11 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8 sm:inline-flex"
               >
                 {expanded ? (
                   <Minimize2 className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
@@ -948,13 +946,17 @@ export function AskGuruWidget({
                   <Maximize2 className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                 )}
               </button>
+              {/* Close → back to the website. On mobile the panel is full-screen,
+                  so the X carries a persistent chip + label (no hover on touch) to
+                  make "exit" unmistakable; on desktop it's the quiet corner button. */}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8"
+                aria-label="Close and return to the website"
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-[var(--border-light)] bg-[var(--surface-primary)] px-3 text-[13px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] sm:h-8 sm:w-8 sm:gap-0 sm:rounded-lg sm:border-0 sm:bg-transparent sm:px-0 sm:text-[var(--text-muted)] sm:hover:text-[var(--text-primary)]"
               >
-                <X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+                <X className="h-[18px] w-[18px] sm:h-4 sm:w-4" strokeWidth={1.5} aria-hidden="true" />
+                <span className="sm:hidden">Close</span>
               </button>
             </div>
           </div>

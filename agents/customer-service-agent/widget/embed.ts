@@ -48,17 +48,44 @@
     },
   };
 
+  // Track open state so an orientation change / resize can re-apply the right size
+  // (e.g. rotating a phone, or crossing the mobile↔desktop breakpoint while open).
+  let isOpen = false;
+  const isMobile = () => window.matchMedia('(max-width: 639px)').matches;
+
+  const sizeIframe = () => {
+    if (!isOpen) {
+      // Launcher pill — small, bottom-right, host page fully usable.
+      iframe.style.inset = 'auto 0 0 auto';
+      iframe.style.width = '248px';
+      iframe.style.height = '96px';
+      return;
+    }
+    if (isMobile()) {
+      // MOBILE → TRUE full screen: cover the whole site so the widget reads as a
+      // full app, not a partial card. The in-iframe panel is inset-0 with a clear
+      // Close that shrinks this iframe back to the launcher (returns to the site).
+      // 100dvh (with 100vh fallback) tracks the mobile URL-bar collapse correctly.
+      iframe.style.inset = '0';
+      iframe.style.width = '100vw';
+      iframe.style.height = '100vh';
+      iframe.style.height = '100dvh';
+    } else {
+      // DESKTOP → floating card anchored bottom-right (the widget renders its card
+      // layout because the iframe is wider than its 640px mobile breakpoint).
+      iframe.style.inset = 'auto 0 0 auto';
+      iframe.style.width = 'min(720px, 100vw)';
+      iframe.style.height = 'min(88vh, 760px)';
+    }
+  };
+
   window.addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { __askguru?: boolean; open?: boolean } | undefined;
     if (!d || !d.__askguru) return;
-    if (d.open) {
-      // > 640px so the widget renders its DESKTOP floating-card layout (not the
-      // mobile sheet); the card sits at the iframe's bottom-right corner.
-      iframe.style.width = 'min(720px, 100vw)';
-      iframe.style.height = 'min(88vh, 760px)';
-    } else {
-      iframe.style.width = '248px';
-      iframe.style.height = '96px';
-    }
+    isOpen = Boolean(d.open);
+    sizeIframe();
   });
+  // Re-apply on viewport changes so rotation / resize keeps full-screen correct.
+  window.addEventListener('resize', sizeIframe);
+  window.addEventListener('orientationchange', sizeIframe);
 })();
