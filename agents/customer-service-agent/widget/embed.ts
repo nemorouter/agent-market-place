@@ -54,6 +54,10 @@
   const isMobile = () => window.matchMedia('(max-width: 639px)').matches;
 
   const sizeIframe = () => {
+    // Mobile open/close is INSTANT — animating width/height to full-screen reflows
+    // the embedded page every frame (janky, feels slow). Desktop keeps the quiet
+    // .18s card resize where the size delta is small.
+    iframe.style.transition = isMobile() ? 'none' : 'width .18s ease, height .18s ease';
     if (!isOpen) {
       // Launcher pill — small, bottom-right, host page fully usable.
       iframe.style.inset = 'auto 0 0 auto';
