@@ -1,0 +1,1092 @@
+- generic [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - region "Promotional announcement" [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e13]: $5 free credits when you sign up
+        - button "Dismiss announcement" [ref=e14]:
+          - img [ref=e15]
+    - banner [ref=e18]:
+      - navigation "Main navigation" [ref=e19]:
+        - link "NemoRouter home" [ref=e20] [cursor=pointer]:
+          - /url: /
+          - img "NemoRouter" [ref=e23]
+        - button "Open navigation menu" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+    - main [ref=e27]:
+      - generic [ref=e28]:
+        - region "Every model. One API key. Total control." [ref=e29]:
+          - generic:
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - img
+          - generic [ref=e31]:
+            - generic [ref=e32]:
+              - generic [ref=e35]: The secure enterprise LLM gateway
+              - heading "Every model. One API key. Total control." [level=1] [ref=e36]:
+                - text: Every model. One API key.
+                - text: Total control.
+              - paragraph [ref=e37]:
+                - text: Guardrails, budget enforcement, and smart routing, included
+                - strong [ref=e38]: free
+                - text: on every plan.
+              - generic [ref=e39]:
+                - link "Get an API key — sign up free" [ref=e41] [cursor=pointer]:
+                  - /url: /signup
+                  - text: Get an API key — sign up free
+                  - img [ref=e42]
+                - link "Watch 2-min demo" [ref=e44] [cursor=pointer]:
+                  - /url: /changelog
+                  - img [ref=e45]
+                  - text: Watch 2-min demo
+              - paragraph [ref=e48]: No credit card required · $5 free credits to start · Pay only for what you use
+            - 'generic "Code example: NemoRouter SDK chat call — Python, Node, and cURL" [ref=e50]':
+              - tablist "Programming language" [ref=e51]:
+                - generic [ref=e52]:
+                  - tab "Python" [ref=e53] [cursor=pointer]
+                  - tab "HTTP" [selected] [ref=e54] [cursor=pointer]
+                - button "Copy to clipboard" [ref=e55]:
+                  - img [ref=e56]
+                - status [ref=e59]
+                - generic [ref=e60]:
+                  - img [ref=e62]
+                  - img [ref=e64]
+                  - img [ref=e67]
+              - code [ref=e75]:
+                - generic [ref=e76]:
+                  - generic [ref=e77]: "1"
+                  - generic [ref=e1353]: curl https://api.nemorouter.ai/v1
+        - region "Routes today + on the roadmap" [ref=e80]:
+          - generic [ref=e82]:
+            - paragraph [ref=e83]: Routes today + on the roadmap
+            - list [ref=e86]:
+              - listitem "OpenAI" [ref=e87]:
+                - img "OpenAI" [ref=e88]
+              - listitem "Anthropic" [ref=e89]:
+                - img "Anthropic" [ref=e90]
+              - listitem "Google" [ref=e91]:
+                - img "Google" [ref=e92]
+              - listitem "Meta" [ref=e93]:
+                - img "Meta" [ref=e94]
+              - listitem "Mistral" [ref=e95]:
+                - img "Mistral" [ref=e96]
+              - listitem "Cohere" [ref=e97]:
+                - img "Cohere" [ref=e98]
+              - listitem "Azure" [ref=e99]:
+                - img "Azure" [ref=e100]
+              - listitem "AWS" [ref=e101]:
+                - img "AWS" [ref=e102]
+              - listitem "Groq" [ref=e103]:
+                - img "Groq" [ref=e104]
+              - listitem "DeepSeek" [ref=e105]:
+                - img "DeepSeek" [ref=e106]
+              - listitem "Together" [ref=e107]:
+                - img "Together" [ref=e108]
+              - listitem "Vertex AI" [ref=e109]:
+                - img "Vertex AI" [ref=e110]
+              - listitem "GitHub" [ref=e111]:
+                - img "GitHub" [ref=e112]
+              - listitem "Notion" [ref=e113]:
+                - img "Notion" [ref=e114]
+              - listitem "Langfuse" [ref=e115]:
+                - img "Langfuse" [ref=e116]
+              - listitem "Datadog" [ref=e117]:
+                - img "Datadog" [ref=e118]
+              - listitem "Slack" [ref=e119]:
+                - img "Slack" [ref=e120]
+              - listitem [ref=e121]:
+                - img [ref=e122]
+              - listitem [ref=e123]:
+                - img [ref=e124]
+              - listitem [ref=e125]:
+                - img [ref=e126]
+              - listitem [ref=e127]:
+                - img [ref=e128]
+              - listitem [ref=e129]:
+                - img [ref=e130]
+              - listitem [ref=e131]:
+                - img [ref=e132]
+              - listitem [ref=e133]:
+                - img [ref=e134]
+              - listitem [ref=e135]:
+                - img [ref=e136]
+              - listitem [ref=e137]:
+                - img [ref=e138]
+              - listitem [ref=e139]:
+                - img [ref=e140]
+              - listitem [ref=e141]:
+                - img [ref=e142]
+              - listitem [ref=e143]:
+                - img [ref=e144]
+              - listitem [ref=e145]:
+                - img [ref=e146]
+              - listitem [ref=e147]:
+                - img [ref=e148]
+              - listitem [ref=e149]:
+                - img [ref=e150]
+              - listitem [ref=e151]:
+                - img [ref=e152]
+              - listitem [ref=e153]:
+                - img [ref=e154]
+            - generic [ref=e155]:
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e159]: "78"
+                  - text: +
+                - generic [ref=e160]: Models
+              - generic [ref=e161]:
+                - generic [ref=e162]:
+                  - generic [ref=e164]: "3"
+                  - text: +
+                - generic [ref=e165]: Providers
+              - generic [ref=e166]:
+                - generic [ref=e167]:
+                  - generic [ref=e169]: "99.9"
+                  - text: "%"
+                - generic [ref=e170]: Uptime
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - text: <
+                  - generic [ref=e174]: "95"
+                  - text: ms
+                - generic [ref=e175]: Latency
+        - region "One gateway, always in the path" [ref=e176]:
+          - generic [ref=e177]:
+            - generic [ref=e178]:
+              - paragraph [ref=e179]: Architecture
+              - heading "One gateway, always in the path" [level=2] [ref=e180]
+              - paragraph [ref=e181]: Every request flows through Nemo before it reaches a provider. That is what makes routing, guardrails, and cost control possible — not an SDK wrapper, an actual gateway your traffic passes through.
+            - generic [ref=e182]:
+              - generic [ref=e183]:
+                - generic [ref=e184]:
+                  - generic [ref=e185]: Your app
+                  - paragraph [ref=e186]: OpenAI SDK · agents · RAG pipelines
+                - img [ref=e188]
+                - generic [ref=e190]:
+                  - generic [ref=e191]:
+                    - img [ref=e192]
+                    - generic [ref=e204]: Nemo Router
+                  - list [ref=e205]:
+                    - listitem "PII redaction + injection detection, pre and post call." [ref=e206]:
+                      - img [ref=e207]
+                      - generic [ref=e210]: Guardrails
+                    - listitem "Atomic reserve before the call; settle on the cost header." [ref=e211]:
+                      - img [ref=e212]
+                      - generic [ref=e215]: Reserve credits
+                    - listitem "Failover + load balancing across every healthy model." [ref=e216]:
+                      - img [ref=e217]
+                      - generic [ref=e221]: Smart routing
+                    - listitem "Per-request, per-team, per-key logs and spend." [ref=e222]:
+                      - img [ref=e223]
+                      - generic [ref=e225]: Observability
+                - img [ref=e227]
+                - generic [ref=e229]:
+                  - generic [ref=e230]: Providers
+                  - list [ref=e231]:
+                    - listitem [ref=e232]: Vertex AI
+                    - listitem [ref=e233]: Anthropic
+                    - listitem [ref=e234]: OpenAI
+                    - listitem [ref=e235]: Bedrock
+              - paragraph [ref=e236]: We hold the provider keys. You hold one NemoRouter key and a credit balance. 78 models are live today on Google Vertex AI. Anthropic, OpenAI, and AWS Bedrock are shipping next.
+        - region "Every model, one API." [ref=e237]:
+          - generic [ref=e238]:
+            - generic [ref=e240]:
+              - generic [ref=e244]: Model Marketplace
+              - heading "Every model, one API." [level=2] [ref=e246]
+              - paragraph [ref=e247]: 78 models live today from Anthropic (Claude), Google (Gemini, Imagen, Veo), and OpenAI (GPT, o-series) — AWS Bedrock shipping next. Transparent per-token pricing, instant access, no provider keys to manage.
+            - generic [ref=e249]:
+              - img
+              - textbox "Search models by name, provider, or capability..." [ref=e250]
+            - generic [ref=e251]:
+              - generic [ref=e252]:
+                - link "View details for Gpt 5.5 2026 04 23" [ref=e1126] [cursor=pointer]:
+                  - /url: /models/gpt-5.5-2026-04-23
+                  - generic [ref=e1127]:
+                    - generic [ref=e1128]:
+                      - img "OpenAI" [ref=e1130]
+                      - generic [ref=e1131]:
+                        - heading "Gpt 5.5 2026 04 23" [level=2] [ref=e1133]
+                        - paragraph [ref=e1134]: gpt-5.5-2026-04-23
+                        - paragraph [ref=e1135]: by OpenAI
+                    - paragraph [ref=e1136]: gpt-5.5-2026-04-23 — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1137]:
+                      - generic [ref=e1138]: Chat
+                      - generic [ref=e1139]: Vision
+                      - generic [ref=e1140]: Code
+                      - generic [ref=e1141]: 128K
+                    - generic [ref=e1143]:
+                      - generic [ref=e1144]:
+                        - text: Input
+                        - paragraph [ref=e1145]: $5.00/M
+                      - generic [ref=e1146]:
+                        - text: Output
+                        - paragraph [ref=e1147]: $30.00/M
+                - link "View details for Claude Opus 4 8" [ref=e1148] [cursor=pointer]:
+                  - /url: /models/claude-opus-4-8
+                  - generic [ref=e1149]:
+                    - generic [ref=e1150]:
+                      - img "Anthropic" [ref=e1152]
+                      - generic [ref=e1153]:
+                        - heading "Claude Opus 4 8" [level=2] [ref=e1155]
+                        - paragraph [ref=e1156]: claude-opus-4-8
+                        - paragraph [ref=e1157]: by Anthropic
+                    - paragraph [ref=e1158]: claude-opus-4-8 — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1159]:
+                      - generic [ref=e1160]: Chat
+                      - generic [ref=e1161]: Vision
+                      - generic [ref=e1162]: Code
+                      - generic [ref=e1163]: 1M
+                    - generic [ref=e1165]:
+                      - generic [ref=e1166]:
+                        - text: Input
+                        - paragraph [ref=e1167]: $5.00/M
+                      - generic [ref=e1168]:
+                        - text: Output
+                        - paragraph [ref=e1169]: $25.00/M
+                - link "View details for Gemini 3.5 Flash" [ref=e1170] [cursor=pointer]:
+                  - /url: /models/gemini-3.5-flash
+                  - generic [ref=e1171]:
+                    - generic [ref=e1172]:
+                      - img "Vertex AI" [ref=e1174]
+                      - generic [ref=e1175]:
+                        - heading "Gemini 3.5 Flash" [level=2] [ref=e1177]
+                        - paragraph [ref=e1178]: gemini-3.5-flash
+                        - paragraph [ref=e1179]: by Vertex AI
+                    - paragraph [ref=e1180]: gemini-3.5-flash — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1181]:
+                      - generic [ref=e1182]: Chat
+                      - generic [ref=e1183]: Vision
+                      - generic [ref=e1184]: Code
+                      - generic [ref=e1185]: 1M
+                    - generic [ref=e1187]:
+                      - generic [ref=e1188]:
+                        - text: Input
+                        - paragraph [ref=e1189]: $1.50/M
+                      - generic [ref=e1190]:
+                        - text: Output
+                        - paragraph [ref=e1191]: $9.00/M
+                - link "View details for Gpt 5.5" [ref=e1192] [cursor=pointer]:
+                  - /url: /models/gpt-5.5
+                  - generic [ref=e1193]:
+                    - generic [ref=e1194]:
+                      - img "OpenAI" [ref=e1196]
+                      - generic [ref=e1197]:
+                        - heading "Gpt 5.5" [level=2] [ref=e1199]
+                        - paragraph [ref=e1200]: gpt-5.5
+                        - paragraph [ref=e1201]: by OpenAI
+                    - paragraph [ref=e1202]: gpt-5.5 — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1203]:
+                      - generic [ref=e1204]: Chat
+                      - generic [ref=e1205]: Vision
+                      - generic [ref=e1206]: Code
+                      - generic [ref=e1207]: 128K
+                    - generic [ref=e1209]:
+                      - generic [ref=e1210]:
+                        - text: Input
+                        - paragraph [ref=e1211]: $5.00/M
+                      - generic [ref=e1212]:
+                        - text: Output
+                        - paragraph [ref=e1213]: $30.00/M
+                - link "View details for Claude Opus 4 7" [ref=e1214] [cursor=pointer]:
+                  - /url: /models/claude-opus-4-7
+                  - generic [ref=e1215]:
+                    - generic [ref=e1216]:
+                      - img "Anthropic" [ref=e1218]
+                      - generic [ref=e1219]:
+                        - heading "Claude Opus 4 7" [level=2] [ref=e1221]
+                        - paragraph [ref=e1222]: claude-opus-4-7
+                        - paragraph [ref=e1223]: by Anthropic
+                    - paragraph [ref=e1224]: claude-opus-4-7 — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1225]:
+                      - generic [ref=e1226]: Chat
+                      - generic [ref=e1227]: Vision
+                      - generic [ref=e1228]: Code
+                      - generic [ref=e1229]: 200K
+                    - generic [ref=e1231]:
+                      - generic [ref=e1232]:
+                        - text: Input
+                        - paragraph [ref=e1233]: $5.00/M
+                      - generic [ref=e1234]:
+                        - text: Output
+                        - paragraph [ref=e1235]: $25.00/M
+                - link "View details for Gemini 3.1 Pro Preview" [ref=e1236] [cursor=pointer]:
+                  - /url: /models/gemini-3.1-pro-preview
+                  - generic [ref=e1237]:
+                    - generic [ref=e1238]:
+                      - img "Vertex AI" [ref=e1240]
+                      - generic [ref=e1241]:
+                        - heading "Gemini 3.1 Pro Preview" [level=2] [ref=e1243]
+                        - paragraph [ref=e1244]: gemini-3.1-pro-preview
+                        - paragraph [ref=e1245]: by Vertex AI
+                    - paragraph [ref=e1246]: gemini-3.1-pro-preview — a generative AI model accessible via a single NemoRouter API key.
+                    - generic [ref=e1247]:
+                      - generic [ref=e1248]: Chat
+                      - generic [ref=e1249]: Vision
+                      - generic [ref=e1250]: Code
+                      - generic [ref=e1251]: 1M
+                    - generic [ref=e1253]:
+                      - generic [ref=e1254]:
+                        - text: Input
+                        - paragraph [ref=e1255]: $2.00/M
+                      - generic [ref=e1256]:
+                        - text: Output
+                        - paragraph [ref=e1257]: $12.00/M
+              - link "Browse all models" [ref=e320] [cursor=pointer]:
+                - /url: /models
+                - generic [ref=e321]: Browse all models
+                - img [ref=e322]
+        - region "Everything you need. Nothing you don't" [ref=e324]:
+          - generic [ref=e325]:
+            - generic [ref=e327]:
+              - generic [ref=e331]: Platform
+              - heading "Everything you need. Nothing you don't" [level=2] [ref=e333]
+              - paragraph [ref=e334]: Nemo Router provides nine essential modules for enterprise LLM operations — including smart routing, AI guardrails, real-time cost tracking, and precise budget controls. Every feature is available on every plan with a 0–4% platform fee by tier and zero infrastructure to manage.
+              - link "Browse the model catalog" [ref=e336] [cursor=pointer]:
+                - /url: /models
+                - text: Browse the model catalog
+                - generic [ref=e337]: →
+            - generic [ref=e340]:
+              - article [ref=e341]:
+                - button "Smart Routing" [expanded] [ref=e342]:
+                  - img [ref=e344]
+                  - heading "Smart Routing" [level=3] [ref=e349]
+                  - img [ref=e351]
+                - generic [ref=e355]:
+                  - paragraph [ref=e356]: Automatic failover, load balancing, and usage-based routing across every model in the catalog.
+                  - list [ref=e357]:
+                    - listitem [ref=e358]: Zero-config failover
+                    - listitem [ref=e360]: Weighted load balancing
+                    - listitem [ref=e362]: Model aliases
+                  - img "Smart routing — requests flow through Nemo to providers" [ref=e366]:
+                    - generic [ref=e372]: YOUR APP
+                    - generic [ref=e378]: NEMO
+                    - generic [ref=e383]: OpenAI
+                    - generic [ref=e388]: Anthropic
+                    - generic [ref=e393]: Google
+                    - generic [ref=e398]: Mistral
+              - article [ref=e405]:
+                - button "Guardrails Built-in AI guardrails, prompt injection protection, and PII redaction on every request." [ref=e406]:
+                  - img [ref=e408]
+                  - generic [ref=e410]:
+                    - heading "Guardrails" [level=3] [ref=e411]
+                    - paragraph [ref=e412]: Built-in AI guardrails, prompt injection protection, and PII redaction on every request.
+                  - img [ref=e414]
+              - article [ref=e415]:
+                - button "One API Key Drop-in OpenAI-compatible API — change two lines of code to access every supported model." [ref=e416]:
+                  - img [ref=e418]
+                  - generic [ref=e421]:
+                    - heading "One API Key" [level=3] [ref=e422]
+                    - paragraph [ref=e423]: Drop-in OpenAI-compatible API — change two lines of code to access every supported model.
+                  - img [ref=e425]
+              - article [ref=e426]:
+                - button "Spend Tracking Real-time cost tracking per model, team, and API key with daily aggregates." [ref=e427]:
+                  - img [ref=e429]
+                  - generic [ref=e431]:
+                    - heading "Spend Tracking" [level=3] [ref=e432]
+                    - paragraph [ref=e433]: Real-time cost tracking per model, team, and API key with daily aggregates.
+                  - img [ref=e435]
+              - article [ref=e436]:
+                - button "Budget Controls Spending limits per org, team, or key with automatic enforcement." [ref=e437]:
+                  - img [ref=e439]
+                  - generic [ref=e442]:
+                    - heading "Budget Controls" [level=3] [ref=e443]
+                    - paragraph [ref=e444]: Spending limits per org, team, or key with automatic enforcement.
+                  - img [ref=e446]
+              - article [ref=e447]:
+                - button "Prompt Templates Server-side prompt management with versioning, A/B testing, and Jinja2 variables." [ref=e448]:
+                  - img [ref=e450]
+                  - generic [ref=e453]:
+                    - heading "Prompt Templates" [level=3] [ref=e454]
+                    - paragraph [ref=e455]: Server-side prompt management with versioning, A/B testing, and Jinja2 variables.
+                  - img [ref=e457]
+              - article [ref=e458]:
+                - button "Team Management Organization hierarchy with role-based access and per-team budget controls." [ref=e459]:
+                  - img [ref=e461]
+                  - generic [ref=e466]:
+                    - heading "Team Management" [level=3] [ref=e467]
+                    - paragraph [ref=e468]: Organization hierarchy with role-based access and per-team budget controls.
+                  - img [ref=e470]
+              - article [ref=e471]:
+                - button "Observability Request logs plus callbacks to Langfuse, Datadog, S3, and Slack for full visibility." [ref=e472]:
+                  - img [ref=e474]
+                  - generic [ref=e476]:
+                    - heading "Observability" [level=3] [ref=e477]
+                    - paragraph [ref=e478]: Request logs plus callbacks to Langfuse, Datadog, S3, and Slack for full visibility.
+                  - img [ref=e480]
+              - article [ref=e481]:
+                - button "Model Catalog 78+ models in the catalog — unified pricing, latency, and context window. 78 models live today across Anthropic, Google, and OpenAI — AWS Bedrock is shipping next." [ref=e482]:
+                  - img [ref=e484]
+                  - generic [ref=e488]:
+                    - heading "Model Catalog" [level=3] [ref=e489]
+                    - paragraph [ref=e490]: 78+ models in the catalog — unified pricing, latency, and context window. 78 models live today across Anthropic, Google, and OpenAI — AWS Bedrock is shipping next.
+                  - img [ref=e492]
+            - paragraph [ref=e494]: Use one module, or all nine. Each is independently adoptable, but built to compose.
+        - region "One bill. No feature gating" [ref=e496]:
+          - generic [ref=e497]:
+            - generic [ref=e499]:
+              - generic [ref=e503]: Pricing
+              - heading "One bill. No feature gating" [level=2] [ref=e505]
+              - paragraph [ref=e506]: 0% platform fee on Tier 3. 2% on Tier 2. 4% pay-as-you-go. The platform fee is added on top of credits — never skimmed out. Every feature is unlocked on every tier; tiers differ only by that fee and guaranteed throughput.
+              - generic [ref=e507]:
+                - link "See full pricing & FAQ" [ref=e508] [cursor=pointer]:
+                  - /url: /pricing
+                  - text: See full pricing & FAQ
+                  - generic [ref=e509]: →
+                - link "Talk to sales" [ref=e510] [cursor=pointer]:
+                  - /url: /enterprise
+            - generic [ref=e511]:
+              - generic [ref=e512]:
+                - generic [ref=e514]:
+                  - heading "Tier 1" [level=3] [ref=e515]
+                  - paragraph [ref=e516]: Pay As You Go
+                - generic [ref=e517]:
+                  - generic [ref=e518]: $5
+                  - generic [ref=e519]: free to start · no card
+                - list [ref=e520]:
+                  - listitem [ref=e521]:
+                    - img [ref=e522]
+                    - generic [ref=e524]: 4% platform fee — no commitment
+                  - listitem [ref=e525]:
+                    - img [ref=e526]
+                    - generic [ref=e528]: Every feature unlocked
+                  - listitem [ref=e529]:
+                    - img [ref=e530]
+                    - generic [ref=e532]: 500 RPM guaranteed
+                - link "Start free" [ref=e533] [cursor=pointer]:
+                  - /url: /signup
+                  - text: Start free
+                  - img [ref=e534]
+              - generic [ref=e536]:
+                - generic [ref=e538]:
+                  - heading "Tier 2" [level=3] [ref=e539]
+                  - paragraph [ref=e540]: Monthly Commitment
+                - generic [ref=e541]:
+                  - generic [ref=e542]: $100
+                  - generic [ref=e543]: /mo minimum · 100% to credits
+                - list [ref=e544]:
+                  - listitem [ref=e545]:
+                    - img [ref=e546]
+                    - generic [ref=e548]: 2% platform fee — half of pay-as-you-go
+                  - listitem [ref=e549]:
+                    - img [ref=e550]
+                    - generic [ref=e552]: Monthly credit commitment
+                  - listitem [ref=e553]:
+                    - img [ref=e554]
+                    - generic [ref=e556]: 50 TPS sustained throughput
+                - link "Choose Tier 2" [ref=e557] [cursor=pointer]:
+                  - /url: /signup?plan=tier2
+                  - text: Choose Tier 2
+                  - img [ref=e558]
+              - generic [ref=e560]:
+                - generic [ref=e561]:
+                  - generic [ref=e562]:
+                    - heading "Tier 3" [level=3] [ref=e563]
+                    - paragraph [ref=e564]: Annual Commitment
+                  - generic [ref=e565]: Most popular
+                - generic [ref=e566]:
+                  - generic [ref=e567]: $1,200
+                  - generic [ref=e568]: /yr minimum · 100% to credits
+                - list [ref=e569]:
+                  - listitem [ref=e570]:
+                    - img [ref=e571]
+                    - generic [ref=e573]: 0% platform fee — keep every dollar
+                  - listitem [ref=e574]:
+                    - img [ref=e575]
+                    - generic [ref=e577]: Highest guaranteed RPM / TPM / TPS
+                  - listitem [ref=e578]:
+                    - img [ref=e579]
+                    - generic [ref=e581]: 1,000 RPM · 1M TPM
+                - link "Choose Tier 3" [ref=e582] [cursor=pointer]:
+                  - /url: /signup?plan=tier3
+                  - text: Choose Tier 3
+                  - img [ref=e583]
+            - paragraph [ref=e586]:
+              - text: Spending $10K+ a month?
+              - link "Enterprise" [ref=e587] [cursor=pointer]:
+                - /url: /enterprise
+              - text: gets custom pricing, dedicated capacity, and a custom SLA — reach us at
+              - link "sales@nemorouter.ai" [ref=e588] [cursor=pointer]:
+                - /url: mailto:sales@nemorouter.ai
+              - text: .
+        - region "Why teams choose Nemo Router" [ref=e589]:
+          - generic [ref=e590]:
+            - generic [ref=e592]:
+              - generic [ref=e596]: Compare
+              - heading "Why teams choose Nemo Router" [level=2] [ref=e598]
+              - paragraph [ref=e599]: Nemo Router is the managed LLM gateway for multi-model AI. It provides all enterprise features—such as Guardrails and Cost Tracking—natively on every plan with a 0–4% platform fee by tier, eliminating the gateway-stitching and plugin-licensing overhead of API-gateway alternatives.
+              - generic [ref=e600]:
+                - link "View pricing" [ref=e601] [cursor=pointer]:
+                  - /url: /pricing
+                  - text: View pricing
+                  - generic [ref=e602]: →
+                - link "Talk to sales" [ref=e603] [cursor=pointer]:
+                  - /url: /enterprise
+            - generic [ref=e606]:
+              - generic [ref=e607]:
+                - generic [ref=e608]:
+                  - generic [ref=e609]: Feature
+                  - generic [ref=e610]: Pricing Model
+                - generic [ref=e611]:
+                  - generic [ref=e612]:
+                    - generic [ref=e613]: Nemo Router
+                    - generic [ref=e614]: Credits — 0–4% platform fee
+                  - generic [ref=e615]:
+                    - generic [ref=e616]: OpenRouter
+                    - generic [ref=e617]: 5% flat markup
+                  - generic [ref=e618]:
+                    - generic [ref=e619]: Kong AI Gateway
+                    - generic [ref=e620]: Enterprise license
+                  - generic [ref=e621]:
+                    - generic [ref=e622]: Portkey
+                    - generic [ref=e623]: Per-feature SaaS
+                  - generic [ref=e624]:
+                    - generic [ref=e625]: Helicone
+                    - generic [ref=e626]: Per-event metering
+              - generic [ref=e627]:
+                - generic [ref=e628]:
+                  - generic [ref=e629]: Feature
+                  - generic [ref=e630]: Managed Infrastructure
+                - generic [ref=e631]:
+                  - generic [ref=e632]:
+                    - generic [ref=e633]: Nemo Router
+                    - generic "Included" [ref=e634]:
+                      - img [ref=e635]
+                      - generic [ref=e637]: Included
+                  - generic [ref=e638]:
+                    - generic [ref=e639]: OpenRouter
+                    - generic "Included" [ref=e640]:
+                      - img [ref=e641]
+                      - generic [ref=e643]: Included
+                  - generic [ref=e644]:
+                    - generic [ref=e645]: Kong AI Gateway
+                    - generic [ref=e646]: Self-host or Konnect SaaS
+                  - generic [ref=e647]:
+                    - generic [ref=e648]: Portkey
+                    - generic "Included" [ref=e649]:
+                      - img [ref=e650]
+                      - generic [ref=e652]: Included
+                  - generic [ref=e653]:
+                    - generic [ref=e654]: Helicone
+                    - generic "Included" [ref=e655]:
+                      - img [ref=e656]
+                      - generic [ref=e658]: Included
+              - generic [ref=e659]:
+                - generic [ref=e660]:
+                  - generic [ref=e661]: Feature
+                  - generic [ref=e662]: All Features Unlocked
+                - generic [ref=e663]:
+                  - generic [ref=e664]:
+                    - generic [ref=e665]: Nemo Router
+                    - generic "Every tier" [ref=e666]:
+                      - img [ref=e667]
+                      - generic [ref=e669]: Every tier
+                  - generic [ref=e670]:
+                    - generic [ref=e671]: OpenRouter
+                    - 'generic "Partial: Limited" [ref=e672]':
+                      - generic [ref=e673]: ◐
+                      - generic [ref=e674]: Limited
+                  - generic [ref=e675]:
+                    - generic [ref=e676]: Kong AI Gateway
+                    - generic [ref=e677]: Enterprise tier only
+                  - generic [ref=e678]:
+                    - generic [ref=e679]: Portkey
+                    - 'generic "Partial: Paid tier only" [ref=e680]':
+                      - generic [ref=e681]: ◐
+                      - generic [ref=e682]: Paid tier only
+                  - generic [ref=e683]:
+                    - generic [ref=e684]: Helicone
+                    - 'generic "Partial: Paid tier only" [ref=e685]':
+                      - generic [ref=e686]: ◐
+                      - generic [ref=e687]: Paid tier only
+              - generic [ref=e688]:
+                - generic [ref=e689]:
+                  - generic [ref=e690]: Feature
+                  - generic [ref=e691]: Team & Org Management
+                - generic [ref=e692]:
+                  - generic [ref=e693]:
+                    - generic [ref=e694]: Nemo Router
+                    - generic "Included" [ref=e695]:
+                      - img [ref=e696]
+                      - generic [ref=e698]: Included
+                  - generic [ref=e699]:
+                    - generic [ref=e700]: OpenRouter
+                    - generic [ref=e701]: —
+                  - generic [ref=e702]:
+                    - generic [ref=e703]: Kong AI Gateway
+                    - generic [ref=e704]: Workspaces (paid)
+                  - generic [ref=e705]:
+                    - generic [ref=e706]: Portkey
+                    - 'generic "Partial: Paid tier only" [ref=e707]':
+                      - generic [ref=e708]: ◐
+                      - generic [ref=e709]: Paid tier only
+                  - generic [ref=e710]:
+                    - generic [ref=e711]: Helicone
+                    - 'generic "Partial: Paid tier only" [ref=e712]':
+                      - generic [ref=e713]: ◐
+                      - generic [ref=e714]: Paid tier only
+              - generic [ref=e715]:
+                - generic [ref=e716]:
+                  - generic [ref=e717]: Feature
+                  - generic [ref=e718]: Guardrails & Safety
+                - generic [ref=e719]:
+                  - generic [ref=e720]:
+                    - generic [ref=e721]: Nemo Router
+                    - generic "Built-in" [ref=e722]:
+                      - img [ref=e723]
+                      - generic [ref=e725]: Built-in
+                  - generic [ref=e726]:
+                    - generic [ref=e727]: OpenRouter
+                    - generic [ref=e728]: —
+                  - generic [ref=e729]:
+                    - generic [ref=e730]: Kong AI Gateway
+                    - generic [ref=e731]: AI plugins (basic)
+                  - generic [ref=e732]:
+                    - generic [ref=e733]: Portkey
+                    - 'generic "Partial: Paid tier only" [ref=e734]':
+                      - generic [ref=e735]: ◐
+                      - generic [ref=e736]: Paid tier only
+                  - generic [ref=e737]:
+                    - generic [ref=e738]: Helicone
+                    - generic [ref=e739]: —
+              - generic [ref=e740]:
+                - generic [ref=e741]:
+                  - generic [ref=e742]: Feature
+                  - generic [ref=e743]: Budget Controls
+                - generic [ref=e744]:
+                  - generic [ref=e745]:
+                    - generic [ref=e746]: Nemo Router
+                    - generic [ref=e747]: Per key / team / org
+                  - generic [ref=e748]:
+                    - generic [ref=e749]: OpenRouter
+                    - 'generic "Partial: Basic" [ref=e750]':
+                      - generic [ref=e751]: ◐
+                      - generic [ref=e752]: Basic
+                  - generic [ref=e753]:
+                    - generic [ref=e754]: Kong AI Gateway
+                    - generic [ref=e755]: Rate limit only
+                  - generic [ref=e756]:
+                    - generic [ref=e757]: Portkey
+                    - 'generic "Partial: Paid tier only" [ref=e758]':
+                      - generic [ref=e759]: ◐
+                      - generic [ref=e760]: Paid tier only
+                  - generic [ref=e761]:
+                    - generic [ref=e762]: Helicone
+                    - 'generic "Partial: Basic" [ref=e763]':
+                      - generic [ref=e764]: ◐
+                      - generic [ref=e765]: Basic
+              - generic [ref=e766]:
+                - generic [ref=e767]:
+                  - generic [ref=e768]: Feature
+                  - generic [ref=e769]: Audit Logging
+                - generic [ref=e770]:
+                  - generic [ref=e771]:
+                    - generic [ref=e772]: Nemo Router
+                    - generic "Included" [ref=e773]:
+                      - img [ref=e774]
+                      - generic [ref=e776]: Included
+                  - generic [ref=e777]:
+                    - generic [ref=e778]: OpenRouter
+                    - generic [ref=e779]: —
+                  - generic [ref=e780]:
+                    - generic [ref=e781]: Kong AI Gateway
+                    - generic [ref=e782]: Enterprise only
+                  - generic [ref=e783]:
+                    - generic [ref=e784]: Portkey
+                    - 'generic "Partial: Paid tier only" [ref=e785]':
+                      - generic [ref=e786]: ◐
+                      - generic [ref=e787]: Paid tier only
+                  - generic [ref=e788]:
+                    - generic [ref=e789]: Helicone
+                    - generic [ref=e790]: —
+              - generic [ref=e791]:
+                - generic [ref=e792]:
+                  - generic [ref=e793]: Feature
+                  - generic [ref=e794]: OpenAI-Compatible API
+                - generic [ref=e795]:
+                  - generic [ref=e796]:
+                    - generic [ref=e797]: Nemo Router
+                    - generic "Yes" [ref=e798]:
+                      - img [ref=e799]
+                      - generic [ref=e801]: "Yes"
+                  - generic [ref=e802]:
+                    - generic [ref=e803]: OpenRouter
+                    - generic "Yes" [ref=e804]:
+                      - img [ref=e805]
+                      - generic [ref=e807]: "Yes"
+                  - generic [ref=e808]:
+                    - generic [ref=e809]: Kong AI Gateway
+                    - generic [ref=e810]: Via plugin
+                  - generic [ref=e811]:
+                    - generic [ref=e812]: Portkey
+                    - generic "Yes" [ref=e813]:
+                      - img [ref=e814]
+                      - generic [ref=e816]: "Yes"
+                  - generic [ref=e817]:
+                    - generic [ref=e818]: Helicone
+                    - generic "Yes" [ref=e819]:
+                      - img [ref=e820]
+                      - generic [ref=e822]: "Yes"
+              - generic [ref=e823]:
+                - generic [ref=e824]:
+                  - generic [ref=e825]: Feature
+                  - generic [ref=e826]: Setup Time
+                - generic [ref=e827]:
+                  - generic [ref=e828]:
+                    - generic [ref=e829]: Nemo Router
+                    - generic [ref=e830]: Sign up & call
+                  - generic [ref=e831]:
+                    - generic [ref=e832]: OpenRouter
+                    - generic [ref=e833]: Sign up & call
+                  - generic [ref=e834]:
+                    - generic [ref=e835]: Kong AI Gateway
+                    - generic [ref=e836]: Provision gateway & plugins
+                  - generic [ref=e837]:
+                    - generic [ref=e838]: Portkey
+                    - generic [ref=e839]: Sign up & call
+                  - generic [ref=e840]:
+                    - generic [ref=e841]: Helicone
+                    - generic [ref=e842]: Sign up & call
+    - region "Get started" [ref=e843]:
+      - generic [ref=e845]:
+        - generic [ref=e846]:
+          - paragraph [ref=e847]: Start building today
+          - heading "One API key. Every model. Three tiers." [level=2] [ref=e848]:
+            - text: One API key.
+            - text: Every model. Three tiers.
+          - paragraph [ref=e849]: 4% pay-as-you-go, 2% on Tier 2 monthly, 0% on Tier 3 annual. All enterprise features included on every tier.
+          - generic [ref=e850]:
+            - link "Get Started Free" [ref=e851] [cursor=pointer]:
+              - /url: /signup
+              - text: Get Started Free
+              - img [ref=e852]
+            - link "Talk to Sales" [ref=e854] [cursor=pointer]:
+              - /url: /enterprise
+          - paragraph [ref=e855]: No credit card required · OpenAI-compatible API
+        - generic [ref=e856]:
+          - generic [ref=e857]:
+            - generic [ref=e859]:
+              - generic [ref=e860]: "78"
+              - text: +
+            - paragraph [ref=e861]: AI Models
+            - paragraph [ref=e862]: from leading providers
+          - generic [ref=e863]:
+            - generic [ref=e865]:
+              - generic [ref=e866]: "3"
+              - text: +
+            - paragraph [ref=e867]: Providers
+            - paragraph [ref=e868]: Anthropic, Google, and OpenAI
+          - generic [ref=e869]:
+            - generic [ref=e871]:
+              - generic [ref=e872]: "0"
+              - text: "%"
+            - paragraph [ref=e873]: Platform Fee
+            - paragraph [ref=e874]: on Tier 3 annual plans
+          - generic [ref=e875]:
+            - generic [ref=e877]:
+              - generic [ref=e878]: "99.9"
+              - text: "%"
+            - paragraph [ref=e879]: Uptime SLA
+            - paragraph [ref=e880]: enterprise-grade reliability
+    - contentinfo "Site footer" [ref=e881]:
+      - generic [ref=e884]:
+        - generic [ref=e885]:
+          - link "NemoRouter home" [ref=e886] [cursor=pointer]:
+            - /url: /
+            - img "NemoRouter" [ref=e888]
+          - paragraph [ref=e889]: The managed LLM gateway for teams. One API key, one bill, zero provider configuration.
+          - link "A product of CloudAct Inc." [ref=e890] [cursor=pointer]:
+            - /url: /about
+            - text: A product of
+            - generic [ref=e891]: CloudAct Inc.
+          - generic [ref=e892]:
+            - link "GitHub (opens in new tab)" [ref=e893] [cursor=pointer]:
+              - /url: https://github.com/nemorouter
+              - img [ref=e894]
+            - link "X (Twitter) (opens in new tab)" [ref=e896] [cursor=pointer]:
+              - /url: https://x.com/nemorouter
+              - img [ref=e897]
+            - link "LinkedIn (opens in new tab)" [ref=e899] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/nemorouterai/
+              - img [ref=e900]
+            - link "YouTube (opens in new tab)" [ref=e902] [cursor=pointer]:
+              - /url: https://www.youtube.com/@NemoRouter
+              - img [ref=e903]
+            - link "Community Slack (opens in new tab)" [ref=e905] [cursor=pointer]:
+              - /url: https://nemorouter.ai/community
+              - img [ref=e906]
+            - link "Product Hunt (opens in new tab)" [ref=e908] [cursor=pointer]:
+              - /url: https://www.producthunt.com/products/nemo-router
+              - img [ref=e909]
+        - generic [ref=e911]:
+          - heading "Ask AI about NemoRouter" [level=3] [ref=e912]:
+            - img [ref=e913]
+            - text: Ask AI about NemoRouter
+          - paragraph [ref=e915]: Researching with an AI assistant? Get an instant rundown of NemoRouter from your model of choice.
+          - generic [ref=e916]:
+            - link "Ask ChatGPT about NemoRouter (opens in new tab)" [ref=e917] [cursor=pointer]:
+              - /url: https://chatgpt.com/?hints=search&q=What%20is%20NemoRouter%20(nemorouter.ai)%3F%20Is%20it%20a%20good%20managed%20LLM%20gateway%20for%20accessing%20many%20AI%20models%20(OpenAI%2C%20Anthropic%2C%20Google%20and%20more)%20with%20one%20API%20key%2C%20built-in%20guardrails%2C%20budget%20controls%2C%20and%20smart%20routing%3F
+              - text: ChatGPT
+              - img [ref=e918]
+            - link "Ask Claude about NemoRouter (opens in new tab)" [ref=e921] [cursor=pointer]:
+              - /url: https://claude.ai/new?q=What%20is%20NemoRouter%20(nemorouter.ai)%3F%20Is%20it%20a%20good%20managed%20LLM%20gateway%20for%20accessing%20many%20AI%20models%20(OpenAI%2C%20Anthropic%2C%20Google%20and%20more)%20with%20one%20API%20key%2C%20built-in%20guardrails%2C%20budget%20controls%2C%20and%20smart%20routing%3F
+              - text: Claude
+              - img [ref=e922]
+            - link "Ask Gemini about NemoRouter (opens in new tab)" [ref=e925] [cursor=pointer]:
+              - /url: https://gemini.google.com/app?q=What%20is%20NemoRouter%20(nemorouter.ai)%3F%20Is%20it%20a%20good%20managed%20LLM%20gateway%20for%20accessing%20many%20AI%20models%20(OpenAI%2C%20Anthropic%2C%20Google%20and%20more)%20with%20one%20API%20key%2C%20built-in%20guardrails%2C%20budget%20controls%2C%20and%20smart%20routing%3F
+              - text: Gemini
+              - img [ref=e926]
+            - link "Ask Perplexity about NemoRouter (opens in new tab)" [ref=e929] [cursor=pointer]:
+              - /url: https://www.perplexity.ai/search?q=What%20is%20NemoRouter%20(nemorouter.ai)%3F%20Is%20it%20a%20good%20managed%20LLM%20gateway%20for%20accessing%20many%20AI%20models%20(OpenAI%2C%20Anthropic%2C%20Google%20and%20more)%20with%20one%20API%20key%2C%20built-in%20guardrails%2C%20budget%20controls%2C%20and%20smart%20routing%3F
+              - text: Perplexity
+              - img [ref=e930]
+        - generic [ref=e933]:
+          - heading "Contact us" [level=3] [ref=e934]
+          - paragraph [ref=e935]: Questions about pricing, enterprise plans, or integrations? Enter your email and we will follow up.
+          - generic [ref=e936]:
+            - generic [ref=e937]: Your email address
+            - textbox "Your email address" [ref=e938]:
+              - /placeholder: you@company.com
+            - button "Get in touch" [ref=e939]:
+              - text: Get in touch
+              - img [ref=e940]
+          - paragraph [ref=e942]: Submitting opens our contact form. We respond within one business day.
+      - generic [ref=e946]:
+        - generic [ref=e947]:
+          - heading "Product" [level=3] [ref=e948]
+          - list [ref=e949]:
+            - listitem [ref=e950]:
+              - link "Models" [ref=e951] [cursor=pointer]:
+                - /url: /models
+            - listitem [ref=e952]:
+              - link "Rankings" [ref=e953] [cursor=pointer]:
+                - /url: /rankings
+            - listitem [ref=e954]:
+              - link "Integrations" [ref=e955] [cursor=pointer]:
+                - /url: /integrations
+            - listitem [ref=e956]:
+              - link "Pricing" [ref=e957] [cursor=pointer]:
+                - /url: /pricing
+            - listitem [ref=e958]:
+              - link "Playground" [ref=e959] [cursor=pointer]:
+                - /url: /playground
+            - listitem [ref=e960]:
+              - link "Cost calculator" [ref=e961] [cursor=pointer]:
+                - /url: /cost-calculator
+        - generic [ref=e962]:
+          - heading "Solutions" [level=3] [ref=e963]
+          - list [ref=e964]:
+            - listitem [ref=e965]:
+              - link "By industry" [ref=e966] [cursor=pointer]:
+                - /url: /solutions
+            - listitem [ref=e967]:
+              - link "By use case" [ref=e968] [cursor=pointer]:
+                - /url: /use-cases
+            - listitem [ref=e969]:
+              - link "Enterprise" [ref=e970] [cursor=pointer]:
+                - /url: /enterprise
+            - listitem [ref=e971]:
+              - link "Customers" [ref=e972] [cursor=pointer]:
+                - /url: /customers
+            - listitem [ref=e973]:
+              - link "Migrate to NemoRouter" [ref=e974] [cursor=pointer]:
+                - /url: /migrate
+            - listitem [ref=e975]:
+              - link "Security" [ref=e976] [cursor=pointer]:
+                - /url: /security
+            - listitem [ref=e977]:
+              - link "Compliance" [ref=e978] [cursor=pointer]:
+                - /url: /compliance
+            - listitem [ref=e979]:
+              - link "Trust Center" [ref=e980] [cursor=pointer]:
+                - /url: /trust
+        - generic [ref=e981]:
+          - heading "Resources" [level=3] [ref=e982]
+          - list [ref=e983]:
+            - listitem [ref=e984]:
+              - link "Docs" [ref=e985] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e986]:
+              - link "API reference" [ref=e987] [cursor=pointer]:
+                - /url: /api-reference
+            - listitem [ref=e988]:
+              - link "Benchmarks" [ref=e989] [cursor=pointer]:
+                - /url: /benchmarks
+            - listitem [ref=e990]:
+              - link "Blog" [ref=e991] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e992]:
+              - link "Changelog" [ref=e993] [cursor=pointer]:
+                - /url: /changelog
+            - listitem [ref=e994]:
+              - link "Community" [ref=e995] [cursor=pointer]:
+                - /url: /community
+            - listitem [ref=e996]:
+              - link "Help center" [ref=e997] [cursor=pointer]:
+                - /url: /help
+            - listitem [ref=e998]:
+              - link "Status" [ref=e999] [cursor=pointer]:
+                - /url: /status
+        - generic [ref=e1000]:
+          - heading "Comparisons" [level=3] [ref=e1001]
+          - list [ref=e1002]:
+            - listitem [ref=e1003]:
+              - link "vs OpenRouter" [ref=e1004] [cursor=pointer]:
+                - /url: /vs/openrouter
+            - listitem [ref=e1005]:
+              - link "vs Portkey" [ref=e1006] [cursor=pointer]:
+                - /url: /vs/portkey
+            - listitem [ref=e1007]:
+              - link "vs Helicone" [ref=e1008] [cursor=pointer]:
+                - /url: /vs/helicone
+            - listitem [ref=e1009]:
+              - link "Compare all" [ref=e1010] [cursor=pointer]:
+                - /url: /vs
+        - generic [ref=e1011]:
+          - heading "Company" [level=3] [ref=e1012]
+          - list [ref=e1013]:
+            - listitem [ref=e1014]:
+              - link "About" [ref=e1015] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e1016]:
+              - link "Careers" [ref=e1017] [cursor=pointer]:
+                - /url: /careers
+            - listitem [ref=e1018]:
+              - link "Partners" [ref=e1019] [cursor=pointer]:
+                - /url: /partners
+            - listitem [ref=e1020]:
+              - link "Events" [ref=e1021] [cursor=pointer]:
+                - /url: /events
+            - listitem [ref=e1022]:
+              - link "Press kit" [ref=e1023] [cursor=pointer]:
+                - /url: /press/kit
+            - listitem [ref=e1024]:
+              - link "Contact" [ref=e1025] [cursor=pointer]:
+                - /url: /contact
+      - generic [ref=e1028]:
+        - paragraph [ref=e1029]: Built for production
+        - generic [ref=e1030]:
+          - link "SOC 2 Type II (in progress)" [ref=e1031] [cursor=pointer]:
+            - /url: /security
+            - text: SOC 2 Type II (in progress)
+          - link "GDPR Ready" [ref=e1033] [cursor=pointer]:
+            - /url: /security
+            - text: GDPR Ready
+          - link "AES-256 Encryption" [ref=e1035] [cursor=pointer]:
+            - /url: /security
+            - text: AES-256 Encryption
+          - link "99.9% Uptime SLA" [ref=e1037] [cursor=pointer]:
+            - /url: /security
+            - text: 99.9% Uptime SLA
+          - link "US + EU data residency" [ref=e1039] [cursor=pointer]:
+            - /url: /security
+            - text: US + EU data residency
+      - generic [ref=e1043]:
+        - link "All systems operational" [ref=e1044] [cursor=pointer]:
+          - /url: /status
+          - text: All systems operational
+        - link "Book a Demo" [ref=e1048] [cursor=pointer]:
+          - /url: /contact
+          - text: Book a Demo
+          - img [ref=e1049]
+      - generic [ref=e1053]:
+        - generic [ref=e1055]: © 2026 CloudAct Inc.
+        - generic [ref=e1056]:
+          - link "Legal" [ref=e1057] [cursor=pointer]:
+            - /url: /legal
+          - link "Terms" [ref=e1058] [cursor=pointer]:
+            - /url: /terms
+          - link "Privacy" [ref=e1059] [cursor=pointer]:
+            - /url: /privacy
+          - link "AUP" [ref=e1060] [cursor=pointer]:
+            - /url: /legal/aup
+          - link "Security" [ref=e1061] [cursor=pointer]:
+            - /url: /security
+            - img [ref=e1062]
+            - text: Security
+          - link "SLA" [ref=e1065] [cursor=pointer]:
+            - /url: /legal/sla
+          - link "Subprocessors" [ref=e1066] [cursor=pointer]:
+            - /url: /legal/subprocessors
+          - link "DPA" [ref=e1067] [cursor=pointer]:
+            - /url: /legal/dpa
+          - link "Sitemap" [ref=e1068] [cursor=pointer]:
+            - /url: /sitemap.xml
+            - img [ref=e1069]
+            - text: Sitemap
+          - link "RSS" [ref=e1071] [cursor=pointer]:
+            - /url: /feed.xml
+            - img [ref=e1072]
+            - text: RSS
+          - link "support@nemorouter.ai" [ref=e1076] [cursor=pointer]:
+            - /url: mailto:support@nemorouter.ai
+            - img [ref=e1077]
+            - text: support@nemorouter.ai
+  - region "Notifications alt+T"
+  - alert [ref=e1258]
+  - region "Cookie notice" [ref=e1259]:
+    - generic [ref=e1261]:
+      - img [ref=e1263]
+      - generic [ref=e1265]:
+        - paragraph [ref=e1266]:
+          - text: We use IP-anonymized analytics cookies to improve Nemo Router. You can opt out anytime.
+          - link "Cookie Policy" [ref=e1267] [cursor=pointer]:
+            - /url: /cookies
+        - generic [ref=e1268]:
+          - button "Opt out" [ref=e1269]
+          - button "Got it" [ref=e1270]
+  - iframe [active] [ref=e1271]:
+    - generic:
+      - generic:
+        - button "Close" [ref=f4e6] [cursor=pointer]
+        - dialog "Ask AI Guru about Nemo Router" [ref=f4e7]:
+          - generic [ref=f4e8]:
+            - generic [ref=f4e9]:
+              - img [ref=f4e10]
+              - generic [ref=f4e12]:
+                - paragraph [ref=f4e13]: Ask AI Guru
+                - paragraph [ref=f4e14]: Answered live by our own gateway
+            - button "Close and return to the website" [ref=f4e16] [cursor=pointer]:
+              - img [ref=f4e17]
+              - generic [ref=f4e20]: Close
+          - generic [ref=f4e23]:
+            - generic [ref=f4e24]:
+              - generic [ref=f4e25]:
+                - heading "Ask Nemo Router anything" [level=2] [ref=f4e26]
+                - paragraph [ref=f4e27]: Pricing, models, the API, or how we compare — answered live by our own gateway. Type it, or tap the mic and just talk.
+              - generic [ref=f4e29]:
+                - textbox "Message Nemo Router…" [active] [ref=f4e30]
+                - generic [ref=f4e31]:
+                  - button "Speak your question" [ref=f4e33] [cursor=pointer]:
+                    - img [ref=f4e34]
+                  - button "Send" [disabled] [ref=f4e37]:
+                    - img [ref=f4e38]
+              - generic [ref=f4e41]:
+                - button "How does the platform fee work?" [ref=f4e42] [cursor=pointer]:
+                  - generic [ref=f4e43]: How does the platform fee work?
+                  - img [ref=f4e44]
+                - button "Which models are live today?" [ref=f4e46] [cursor=pointer]:
+                  - generic [ref=f4e47]: Which models are live today?
+                  - img [ref=f4e48]
+                - button "Is it OpenAI-compatible?" [ref=f4e50] [cursor=pointer]:
+                  - generic [ref=f4e51]: Is it OpenAI-compatible?
+                  - img [ref=f4e52]
+                - button "How is this different from OpenRouter?" [ref=f4e54] [cursor=pointer]:
+                  - generic [ref=f4e55]: How is this different from OpenRouter?
+                  - img [ref=f4e56]
+            - generic [ref=f4e58]:
+              - paragraph [ref=f4e59]:
+                - text: AI-generated and may be imperfect. Verify pricing on the
+                - link "pricing page" [ref=f4e60] [cursor=pointer]:
+                  - /url: /pricing
+                - text: .
+              - link "Talk to support" [ref=f4e61] [cursor=pointer]:
+                - /url: /contact
+                - img [ref=f4e62]
+                - text: Talk to support
+      - alert [ref=f4e5]
