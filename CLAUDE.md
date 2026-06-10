@@ -138,5 +138,5 @@ Six design skills (`amp-architecture` first; then `-mcp-gateway`, `-agent-runtim
 `-frontend-widget`, `-central-tool-layer`, `-billing-observability`). They are the **design +
 Phase-2 roadmap**; each carries a top status block noting what is actually shipped/live vs.
 roadmap — trust that block over the body when they differ. Validate after edits:
-`bash ~/nemorouter/scripts/validate-skills.sh`. The slash command `/restart-amp-cs-local` restarts
+`bash ~/nemorouter/scripts/validate-skills.sh`. The slash command `/local-deploy` restarts
 the local app on **:3003**.
