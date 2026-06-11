@@ -36,11 +36,19 @@ case "$CLOUD" in
     : "${GCP_REGION:?set GCP_REGION in $FILE}"
     : "${SERVICE_NAME:?set SERVICE_NAME in $FILE}"
     command -v gcloud >/dev/null || { echo "✗ gcloud not found"; exit 1; }
+    command -v docker >/dev/null || { echo "✗ docker not found"; exit 1; }
+    # Build locally + push to Artifact Registry — Cloud Build is disabled in
+    # nemo-prod-deploy, so `gcloud run deploy --source` cannot work there.
+    REGISTRY="${GCP_REGISTRY:-${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/nemo-router}"
+    TAG="main-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)"
+    IMAGE="${REGISTRY}/${SERVICE_NAME}:${TAG}"
     TMP="$(mktemp).yaml"
     python3 scripts/env-to-yaml.py "$FILE" yaml > "$TMP"
-    echo "▶ gcloud run deploy $SERVICE_NAME (Cloud Run, $GCP_REGION) — builds the Dockerfile"
+    echo "▶ docker build $IMAGE (linux/amd64)"
+    docker buildx build --platform linux/amd64 -t "$IMAGE" --push .
+    echo "▶ gcloud run deploy $SERVICE_NAME (Cloud Run, $GCP_REGION) — image $TAG"
     gcloud run deploy "$SERVICE_NAME" \
-      --source . \
+      --image "$IMAGE" \
       --project "$GCP_PROJECT" \
       --region "$GCP_REGION" \
       --platform managed \
