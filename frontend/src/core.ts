@@ -159,11 +159,15 @@ export async function streamAgentTurn(
 }
 
 async function buildRequest(config: AgentChatConfig, messages: AgentMessage[]) {
+  // The page the visitor is on (pathname only). With the Shadow-DOM embed this is the
+  // HOST page, so the agent can give page-aware help. The server re-sanitizes; a direct
+  // /respond consumer that doesn't read it simply ignores the extra field.
+  const pageContext = typeof location !== 'undefined' ? location.pathname : undefined;
   if (config.proxyPath) {
     return {
       url: config.proxyPath,
       headers: { 'Content-Type': 'application/json' } as Record<string, string>,
-      body: { messages },
+      body: { messages, ...(pageContext ? { pageContext } : {}) },
     };
   }
   const apiBase = (config.apiBase ?? DEFAULT_API_BASE).replace(/\/$/, '');
@@ -175,6 +179,6 @@ async function buildRequest(config: AgentChatConfig, messages: AgentMessage[]) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
     } as Record<string, string>,
-    body: { messages, stream: true },
+    body: { messages, stream: true, ...(pageContext ? { pageContext } : {}) },
   };
 }

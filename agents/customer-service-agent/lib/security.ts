@@ -30,6 +30,33 @@ export function originAllowed(origin: string | null, allow: string[]): boolean {
   });
 }
 
+/** Page-context hardening — the widget forwards the page the visitor is on (e.g.
+ *  "/onboarding") so the agent can give page-aware help. The value is BROWSER-supplied
+ *  and therefore untrusted: we keep the PATHNAME ONLY (query/hash dropped — they can
+ *  carry session tokens / PII), strip control chars (no prompt-injection line breaks),
+ *  normalize a leading slash, and bound the length. Returns null for unusable input. */
+export function sanitizePageContext(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  let s = raw.trim();
+  if (!s) return null;
+  // A full URL → reduce to its pathname (drops scheme, host, query, hash).
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
+    try {
+      s = new URL(s).pathname;
+    } catch {
+      return null;
+    }
+  } else {
+    // Bare path → drop query (?) and hash (#) ourselves.
+    s = s.split('#')[0].split('?')[0];
+  }
+  // Strip control chars / newlines so it can't break out of its prompt line.
+  s = s.replace(/[\x00-\x1f\x7f]/g, '');
+  if (!s) return null;
+  if (!s.startsWith('/')) s = '/' + s;
+  return s.slice(0, 256);
+}
+
 /** Layer 2 — fixed-window rate limit (in-memory). Returns true if allowed.
  *  Correct for a SINGLE instance. Across horizontally-scaled instances each one
  *  keeps its own Map, so the effective ceiling is N× — use rateLimitAsync() with

@@ -525,6 +525,9 @@ export function AskGuruWidget({
             messages: history.map(({ role, content }) => ({ role, content })),
             sessionId: sessionIdRef.current,
             ...(opts?.mode ? { mode: opts.mode } : {}),
+            // Tell the agent which page the visitor is on (pathname only — the server
+            // re-sanitizes and drops query/hash). Enables page-aware help.
+            ...(typeof window !== 'undefined' ? { pageContext: window.location.pathname } : {}),
           }),
           signal: controller.signal,
         });
