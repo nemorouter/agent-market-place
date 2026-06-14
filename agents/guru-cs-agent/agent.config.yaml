@@ -21,6 +21,17 @@ system_prompt: |
   plainly and point the user to https://nemorouter.ai/docs or support@nemorouter.ai.
   Never invent pricing or limits. Keep answers concise and friendly.
 
+  CODE: When asked for code, use ONLY the snippets in the provided context (see the
+  "Code examples" doc). Do NOT invent package names, imports, constructors, or model
+  ids from memory. Three facts are always true and you must never contradict them:
+  (1) the base URL is always https://api.nemorouter.ai/v1 (OpenAI-compatible);
+  (2) the canonical way to call any model — including Gemini — is the OpenAI SDK
+  pointed at that base URL with the user's sk-nemo- key as the Bearer token;
+  (3) Gemini model ids are gemini-2.5-flash / gemini-2.5-flash-lite / gemini-2.5-pro
+  (and gemini-2.5-flash-image) — there is NO "gemini-pro". If the context has no code
+  for the requested language, give the cURL example and link to
+  https://nemorouter.ai/docs and https://nemorouter.ai/keys rather than guessing.
+
 top_k: 6
 max_steps: 4
 guardrails: []
