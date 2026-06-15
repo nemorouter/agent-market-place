@@ -54,6 +54,8 @@ case "$CLOUD" in
       --platform managed \
       --allow-unauthenticated \
       --port 8080 \
+      --min-instances "${CS_AGENT_MIN_INSTANCES:-0}" \
+      --max-instances "${CS_AGENT_MAX_INSTANCES:-2}" \
       --env-vars-file "$TMP"
     rm -f "$TMP"
     echo "✓ deployed. Index prod KB: ./scripts/ingest.sh $ENV <SERVICE_URL>"
