@@ -79,6 +79,16 @@ case "$CLOUD" in
       --ingress external \
       --target-port 8080 \
       --env-vars "${ENVARGS[@]}"
+    # `az containerapp up` takes no scaling flags → it leaves ACA defaults (min 0 / max 10).
+    # Reconcile to policy: scale-to-zero when idle (customer Ask-AI widget; cold-start on the
+    # first request after idle is accepted), capped at max 2. Same overrides as the GCP branch.
+    echo "▶ reconcile scaling: min=${CS_AGENT_MIN_INSTANCES:-0} max=${CS_AGENT_MAX_INSTANCES:-2}"
+    az containerapp update \
+      --name "$SERVICE_NAME" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --min-replicas "${CS_AGENT_MIN_INSTANCES:-0}" \
+      --max-replicas "${CS_AGENT_MAX_INSTANCES:-2}" \
+      --output none
     echo "✓ deployed. Index prod KB: ./scripts/ingest.sh $ENV <SERVICE_URL>"
     ;;
 
