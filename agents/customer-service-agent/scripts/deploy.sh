@@ -75,6 +75,7 @@ case "$CLOUD" in
       --name "$SERVICE_NAME" \
       --resource-group "$AZURE_RESOURCE_GROUP" \
       --location "$AZURE_LOCATION" \
+      --registry-server nemorouter.azurecr.io \
       --source . \
       --ingress external \
       --target-port 8080 \
