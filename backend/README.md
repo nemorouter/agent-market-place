@@ -49,8 +49,8 @@ MIT-licensed. The runtime drives every agent loop — including the Nemo Support
 
 ## Related skills
 
-- `~/nemorouter/agent-market-place/.claude/skills/amp-agent-runtime/SKILL.md` — the loop, session model, streaming
-- `~/nemorouter/agent-market-place/.claude/skills/amp-mcp-gateway/SKILL.md` — the routes this runtime calls
-- `~/nemorouter/agent-market-place/.claude/skills/amp-billing-observability/SKILL.md` — how cost & traces emit
-- `~/nemorouter/agent-market-place/.claude/skills/amp-architecture/references/nemo-support-agent-dogfood.md` — the canonical first deployment of this runtime
-- `~/nemorouter/agent-market-place/.claude/skills/amp-architecture/references/open-source-boundary.md` — what changes can land here vs. the Nemo monorepo
+- `~/nr/enterprise-ai-hub/agent-market-place/.claude/skills/amp-agent-runtime/SKILL.md` — the loop, session model, streaming
+- `~/nr/enterprise-ai-hub/agent-market-place/.claude/skills/amp-mcp-gateway/SKILL.md` — the routes this runtime calls
+- `~/nr/enterprise-ai-hub/agent-market-place/.claude/skills/amp-billing-observability/SKILL.md` — how cost & traces emit
+- `~/nr/enterprise-ai-hub/agent-market-place/.claude/skills/amp-architecture/references/nemo-support-agent-dogfood.md` — the canonical first deployment of this runtime
+- `~/nr/enterprise-ai-hub/agent-market-place/.claude/skills/amp-architecture/references/open-source-boundary.md` — what changes can land here vs. the Nemo monorepo

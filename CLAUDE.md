@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> This repo is a **sibling under `~/nemorouter/`**, so sessions here also auto-discover the
-> workspace `~/nemorouter/CLAUDE.md` and the mono-repo's `.claude/rules/` (the 28 Nemo Rules).
+> This repo is a **sibling under `~/nr/`**, so sessions here also auto-discover the
+> workspace `~/nr/nemo-brain/sdlc/references/workspace-cockpit.md` and the mono-repo's `.claude/rules/` (the 28 Nemo Rules).
 > This file covers only what is **specific to agent-market-place**; the inherited rules below
 > (virtual-key auth, credit reserve+settle, LiteLLM-owns-cost, no-BYOK) still apply here.
 
@@ -22,7 +22,7 @@ deployable things, plus design skills:
    streaming client; `src/embed.ts` is the `<script>` widget.
 
 **The MCP tool gateway is NOT in this repo.** It lives in nemo-backend at
-`~/nemorouter/nemo-router-mono-repo/03-nemo-backend/nemo_backend/mcp_gateway/` (routes
+`~/nr/nemo-router-mono-repo/03-nemo-backend/nemo_backend/mcp_gateway/` (routes
 `/v1/mcp/tools`, `/v1/mcp/tools/{id}/call`, `/v1/agents/{id}/respond`). When a change needs
 the gateway (new tool, credential passthrough), edit there — this repo only **consumes** it.
 
@@ -138,5 +138,5 @@ Six design skills (`amp-architecture` first; then `-mcp-gateway`, `-agent-runtim
 `-frontend-widget`, `-central-tool-layer`, `-billing-observability`). They are the **design +
 Phase-2 roadmap**; each carries a top status block noting what is actually shipped/live vs.
 roadmap — trust that block over the body when they differ. Validate after edits:
-`bash ~/nemorouter/scripts/validate-skills.sh`. The slash command `/local-deploy` restarts
+`bash ~/nr/nemo-brain/sdlc/hooks/validate-skills.sh`. The slash command `/local-deploy` restarts
 the local app on **:3003**.

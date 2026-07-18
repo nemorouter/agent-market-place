@@ -2,7 +2,7 @@
 
 > **Status:** APPROVED 2026-05-30 (brainstorming complete). Ready for implementation plan.
 > **Owner:** surasani.rama@gmail.com
-> **Repo:** `nemorouter/agent-market-place` (public, MIT) — sibling under `~/nemorouter/`.
+> **Repo:** `nemorouter/agent-market-place` (public, MIT) — sibling under `~/nr/`.
 > **Supersedes the centralized assumption in** `docs/design.md` / `.claude/skills/amp-architecture/` — see §11.
 
 ## 0. TL;DR
@@ -257,5 +257,5 @@ Both coexist: **pure-RAG agents run standalone; credentialed-tool agents use the
 
 - `docs/design.md` — the prior centralized design (this doc supersedes its customer-facing assumption; see §11).
 - `.claude/skills/amp-*` — the central-gateway side (kept for tools).
-- `~/nemorouter/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md` — inherited rules (#2 no BYOK, #7 credits, #13 RLS, #15 virtual keys).
+- `~/nr/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md` — inherited rules (#2 no BYOK, #7 credits, #13 RLS, #15 virtual keys).
 - `examples/agent.config.yaml` + `examples/agent.config.schema.json` — the agent config schema the `agents/` templates and the admin form share.

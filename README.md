@@ -2,7 +2,7 @@
 
 > **Status:** v1 SHIPPED 2026-05-29. The MCP gateway is **built, central, in-process inside nemo-backend** (`nemo-router-mono-repo/03-nemo-backend/nemo_backend/mcp_gateway/`) and the **pluggable embeddable widget is built + separately deployable** here in `frontend/` (`@nemorouter/agent-widget`). Authoritative SoT: mono-repo skill `nemo-mcp-gateway` + `nemo-router-mono-repo/docs/superpowers/specs/2026-05-29-mcp-gateway-agent-marketplace-design.md`. The skill docs below are the design + Phase-2 roadmap.
 > **License:** MIT (`LICENSE`) — public on GitHub when the repo is created (`nemorouter/agent-market-place`).
-> **Sibling repo under** `~/nemorouter/`, alongside `nemo-router-mono-repo`, `super-admin-dashboard`, `nemo-infra-cicd`, `dify-integration`, `onyx-integration`. Will become its own independent **public** git repo when work begins.
+> **Sibling repo under** `~/nr/`, alongside `nemo-router-mono-repo`, `super-admin-dashboard`, `nemo-infra-cicd`, `dify-integration`, `onyx-integration`. Will become its own independent **public** git repo when work begins.
 > **First customer:** us — the Nemo Support Agent on `nemorouter.ai`. See `.claude/skills/amp-architecture/references/nemo-support-agent-dogfood.md`.
 
 ## ✅ Live: Ask AI Guru (2026-05-30)
@@ -145,7 +145,7 @@ Full boundary map: `.claude/skills/amp-architecture/references/open-source-bound
 Pre-flight checklist (NOT done yet):
 
 - [ ] Create independent **public** git repo `nemorouter/agent-market-place` on GitHub, push, add `MIT` license badge to README
-- [ ] Add `agent-market-place` as 5th source in `~/nemorouter/bootstrap.sh` so skills aggregate into `~/.claude/skills/`
+- [ ] Add `agent-market-place` as 5th source in `~/nr/nemo-brain/bootstrap.sh` so skills aggregate into `~/.claude/skills/`
 - [ ] Get explicit go/no-go on the "new routes on existing gateway" interpretation in `amp-architecture`
 - [ ] Pick first 3 tools to launch with — likely the ones the Nemo Support Agent needs first: `nemo-docs-search`, `slack-send`, `github-issue-search` (see dogfood reference)
 - [ ] Decide where the agent runtime runs (Cloud Run service inside `<gcp-project>`? Edge function? Browser-side? — see `amp-agent-runtime/references/agent-loop.md`)
@@ -168,5 +168,5 @@ Pre-flight checklist (NOT done yet):
 - `.claude/skills/amp-central-tool-layer/SKILL.md` — the centralization story: same gateway, every consumer
 - `.claude/skills/amp-architecture/references/open-source-boundary.md` — what's public, what's not, why
 - `.claude/skills/amp-architecture/references/nemo-support-agent-dogfood.md` — the canonical first deployment
-- `~/nemorouter/CLAUDE.md` — workspace-cockpit conventions
-- `~/nemorouter/nemo-router-mono-repo/CLAUDE.md` — the 26 permanent rules this marketplace must respect
+- `~/nr/nemo-brain/sdlc/references/workspace-cockpit.md` — workspace-cockpit conventions
+- `~/nr/nemo-router-mono-repo/CLAUDE.md` — the 26 permanent rules this marketplace must respect

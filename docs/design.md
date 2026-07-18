@@ -26,7 +26,7 @@ At 1000+ customers running agents, the LLM-only Nemo Router experience has gaps:
 
 ## 2. Non-negotiable constraints (from the user)
 
-1. **Inline with Nemo ecosystem.** Lives at `~/nemorouter/agent-market-place/`, sibling to the other 7 repos. Skills follow the Claude `SKILL.md + references/ + scripts/` shape.
+1. **Inline with Nemo ecosystem.** Lives at `~/nr/enterprise-ai-hub/agent-market-place/`, sibling to the other 7 repos. Skills follow the Claude `SKILL.md + references/ + scripts/` shape.
 2. **No new APIs.** No second API service, no second hostname. See §4 for the chosen interpretation.
 3. **Customer-facing product = pluggable web chat agent.** Embeddable on the customer's own site / app.
 4. **Internal product = same pluggable widget configured as a playground.** Lets the customer (or our team) test agents before they go live, same way `01-frontend-end` Playground tests raw LLM calls today.
@@ -37,7 +37,7 @@ At 1000+ customers running agents, the LLM-only Nemo Router experience has gaps:
 
 ## 3. Constraints inherited from the Nemo monorepo
 
-All 26 Permanent Rules in `~/nemorouter/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md` still apply. Most load-bearing for this project:
+All 26 Permanent Rules in `~/nr/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md` still apply. Most load-bearing for this project:
 
 - **Rule #2 — No BYOK.** Tool credentials in Nemo's vault, never customer-managed at the surface.
 - **Rule #4 — LiteLLM owns LLM cost.** Tool cost is OUR responsibility. New code path; cannot piggyback on `x-litellm-response-cost`.
@@ -130,7 +130,7 @@ The "backend" inside `agent-market-place/` is small: just the agent-loop orchest
 |---|---|---|
 | 2026-05-28 | Use interpretation 4.A (new routes on existing gateway, no new service) | Only interpretation that preserves all four ecosystem benefits (vault, ledger, guardrails, trace) without violating "no new API services." |
 | 2026-05-28 | Skill prefix `amp-*` (Agent Market Place) | Globally unique, doesn't collide with `nemo-*`, `sa-*`, `infra-*`. Short and memorable. |
-| 2026-05-28 | Live under `~/nemorouter/agent-market-place/` (workspace root sibling) | Matches existing pattern (`super-admin-dashboard`, `dify-integration`, etc.). Auto-ignored by workspace allowlist `.gitignore`. |
+| 2026-05-28 | Live under `~/nr/enterprise-ai-hub/agent-market-place/` (workspace root sibling) | Matches existing pattern (`super-admin-dashboard`, `dify-integration`, etc.). Auto-ignored by workspace allowlist `.gitignore`. |
 | 2026-05-28 | Skills NOT yet wired into `~/.claude/skills/` global discovery | TODO project; wire up via `bootstrap.sh` extension when implementation starts. |
 | 2026-05-28 | **Public repo, MIT-licensed** | Open source for trust + adoption; differentiation is the Nemo integration, not the runtime. |
 | 2026-05-28 | **First deployment = Nemo Support Agent on `nemorouter.ai`** | Dogfood — proves the integration before any external customer adopts it; also the canonical reference deployment. |
@@ -189,7 +189,7 @@ Why this matters for the architecture:
 ## 9. References
 
 - The 5 skills under `.claude/skills/` — start with `amp-architecture/SKILL.md`.
-- Workspace cockpit: `~/nemorouter/CLAUDE.md`.
-- Nemo Router 26 rules: `~/nemorouter/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md`.
-- Tenancy rules (org → team → member, same-UUID, RLS): `~/nemorouter/nemo-router-mono-repo/.claude/rules/02-multi-tenancy.md`.
+- Workspace cockpit: `~/nr/nemo-brain/sdlc/references/workspace-cockpit.md`.
+- Nemo Router 26 rules: `~/nr/nemo-router-mono-repo/.claude/rules/00-permanent-rules.md`.
+- Tenancy rules (org → team → member, same-UUID, RLS): `~/nr/nemo-router-mono-repo/.claude/rules/02-multi-tenancy.md`.
 - Existing pattern this borrows from heavily: `sa-provider-accounts` (vault shape), `nemo-credits` (reserve+settle), `nemo-guardrails` (scope hierarchy), `nemo-observability` (trace shape).
