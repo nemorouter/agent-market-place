@@ -70,23 +70,23 @@ case "$CLOUD" in
     ENVARGS=()
     while IFS= read -r kv; do [ -n "$kv" ] && ENVARGS+=("$kv"); done \
       < <(python3 scripts/env-to-yaml.py "$FILE" kv)
-    echo "▶ az containerapp up $SERVICE_NAME (Azure Container Apps, $AZURE_LOCATION)"
-    az containerapp up \
-      --name "$SERVICE_NAME" \
-      --resource-group "$AZURE_RESOURCE_GROUP" \
-      --location "$AZURE_LOCATION" \
-      --registry-server nemorouter.azurecr.io \
-      --source . \
-      --ingress external \
-      --target-port 8080 \
-      --env-vars "${ENVARGS[@]}"
-    # `az containerapp up` takes no scaling flags → it leaves ACA defaults (min 0 / max 10).
-    # Reconcile to policy: scale-to-zero when idle (customer Ask-AI widget; cold-start on the
-    # first request after idle is accepted), capped at max 2. Same overrides as the GCP branch.
-    echo "▶ reconcile scaling: min=${CS_AGENT_MIN_INSTANCES:-0} max=${CS_AGENT_MAX_INSTANCES:-2}"
+    # ACR admin user is DISABLED (security). `az containerapp up --source` tries to
+    # fetch admin creds to configure the app's registry pull and fails
+    # ("Failed to retrieve credentials for container registry"). The app already
+    # pulls via its SystemAssigned identity (identity-based registry config), so
+    # build with `az acr build` (AAD-token auth) and roll with `containerapp
+    # update --image`, which respects the existing identity pull — the same
+    # pattern the core fleet (deploy-aca-local.sh) uses.
+    ACR_IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%s)}"
+    ACR_IMAGE="nemorouter.azurecr.io/${SERVICE_NAME}:${ACR_IMAGE_TAG}"
+    echo "▶ az acr build $ACR_IMAGE (admin-disabled, AAD-token auth)"
+    az acr build --registry nemorouter --image "$ACR_IMAGE" .
+    echo "▶ az containerapp update $SERVICE_NAME --image (min=${CS_AGENT_MIN_INSTANCES:-0} max=${CS_AGENT_MAX_INSTANCES:-2})"
     az containerapp update \
       --name "$SERVICE_NAME" \
       --resource-group "$AZURE_RESOURCE_GROUP" \
+      --image "$ACR_IMAGE" \
+      --set-env-vars "${ENVARGS[@]}" \
       --min-replicas "${CS_AGENT_MIN_INSTANCES:-0}" \
       --max-replicas "${CS_AGENT_MAX_INSTANCES:-2}" \
       --output none
